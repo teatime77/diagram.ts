@@ -1,0 +1,6 @@
+public/lib/algebra
+public/lib/i18n
+public/lib/parser
+public/lib/webgpu
+public/lib/diagram
+ts/@types
