@@ -1,6 +1,8 @@
 public/lib/algebra
 public/lib/i18n
 public/lib/parser
+public/lib/layout
+public/lib/plane
 public/lib/webgpu
 public/lib/diagram
 ts/@types

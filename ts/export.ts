@@ -4,6 +4,7 @@ export const MyError = i18n_ts.MyError;
 export const assert  = i18n_ts.assert;
 export const msg     = i18n_ts.msg;
 export const range   = i18n_ts.range;
+export const range2  = i18n_ts.range2;
 export const setPlayMode = i18n_ts.setPlayMode;
 export const PlayMode    = i18n_ts.PlayMode;
 export const sleep = i18n_ts.sleep;
@@ -11,6 +12,7 @@ export const sleep = i18n_ts.sleep;
 export const last    = i18n_ts.last;
 export const unique  = i18n_ts.unique;
 export const remove  = i18n_ts.remove;
+export const arrayFill = i18n_ts.arrayFill;
 
 export const sum  = i18n_ts.sum;
 export const list  = i18n_ts.list;
@@ -46,5 +48,9 @@ export type  RefVar = parser_ts.RefVar;
 export const RefVar = parser_ts.RefVar;
 
 export const operator = parser_ts.operator;
+
+export type  Vec2 = plane_ts.Vec2;
+export const Vec2 = plane_ts.Vec2;
+
 
 }
