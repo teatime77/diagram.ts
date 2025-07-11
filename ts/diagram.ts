@@ -67,9 +67,6 @@ class Plot {
 export class Layer {
 }
 
-export class Canvas {
-}
-
 class Scheduler {
 }
 
@@ -81,22 +78,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 let main : Main;
 
 export class Main {
-    canvas : HTMLCanvasElement;
-    ctx : CanvasRenderingContext2D;
+    canvas : Canvas;
     editor : Editor;
-    root   : Grid;
 
     constructor(){
         // Get the canvas element
-        this.canvas = document.getElementById('world') as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
-        if (!this.ctx) {
-            console.error("Canvas context not supported!");
-        }
 
         this.editor = new Editor({});
 
-        this.root = $grid({
+        const root = $grid({
             rows : "100px 100%",        
             columns : "100px 20% 80%",
             cells : [
@@ -132,40 +122,19 @@ export class Main {
             ]
         });
 
-        setContext2D(this.ctx, this.root);
+        const canvas_html = document.getElementById('world') as HTMLCanvasElement;
+        this.canvas = new Canvas(canvas_html, root)
 
         // Initial resize when the page loads
         // Use DOMContentLoaded to ensure the canvas element exists before trying to access it
-        document.addEventListener('DOMContentLoaded', this.resizeCanvas.bind(this));
+        document.addEventListener('DOMContentLoaded', this.canvas.resizeCanvas.bind(this.canvas));
 
         // Add an event listener to resize the canvas whenever the window is resized
-        window.addEventListener('resize', this.resizeCanvas.bind(this));
+        window.addEventListener('resize', this.canvas.resizeCanvas.bind(this.canvas));
 
-        this.resizeCanvas();
+        this.canvas.resizeCanvas();
     }
 
-    resizeCanvas() {
-        // Set the canvas's internal drawing dimensions to match its display size
-        // window.innerWidth/Height give the viewport dimensions.
-        this.canvas.width  = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-
-        // If you're drawing something, you might want to redraw it here
-        if (this.ctx) {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear the canvas
-            // Example drawing
-            this.ctx.fillStyle = 'blue';
-            this.ctx.fillRect(50, 50, 100, 100);
-            this.ctx.font = '30px Arial';
-            this.ctx.fillStyle = 'white';
-            this.ctx.fillText('Hello Canvas!', this.canvas.width / 2 - 100, this.canvas.height / 2);
-        }
-
-        this.root.setMinSize();
-        this.root.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
-        this.root.dump(0);
-        this.root.draw(this.ctx);
-    }
 }
 
 
