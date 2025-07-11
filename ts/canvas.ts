@@ -1,10 +1,16 @@
 namespace diagram_ts {
 //
+let animationFrameId : number | null = null;
 
 export class Canvas {
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
     root   : Grid;
+    draggedUI? : UI;
+    pointerId : number = NaN;
+
+    downPos : Vec2 = Vec2.zero();
+    movePos : Vec2 = Vec2.zero();
 
     constructor(canvas_html : HTMLCanvasElement, root : Grid){
         this.canvas = canvas_html;
@@ -60,24 +66,73 @@ export class Canvas {
     pointerdown(ev:PointerEvent){
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
+        if(target != undefined){
+            this.downPos   = pos;
+            this.movePos   = pos;
+            this.draggedUI = target;
+            this.pointerId = ev.pointerId;
+
+            this.canvas.setPointerCapture(this.pointerId);
+            this.canvas.classList.add('dragging');
+        }
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
         msg(`down pos:(${pos.x},${pos.y}) ${s}`);
     }
 
     pointermove(ev:PointerEvent){
+        if(this.draggedUI == undefined){
+            return;
+        }
+
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
+
+        this.movePos = pos;
         msg(`move pos:(${pos.x},${pos.y}) ${s}`);
 
+        this.requestUpdateCanvas();
+    }
+
+    requestUpdateCanvas(){
+        if (animationFrameId == null) {
+            animationFrameId = requestAnimationFrame(this.updateCanvas.bind(this));
+        }        
+    }
+
+    updateCanvas(){
+        animationFrameId = null;
+        this.repaint();
+
+        if(this.draggedUI == undefined){
+            return;
+        }
+
+        const ui_pos = this.draggedUI.position;
+        const diff_pos = this.movePos.sub(this.downPos);
+
+        this.draggedUI.position = ui_pos.add(diff_pos);
+        this.draggedUI.draw(this.ctx);
+        this.draggedUI.position = ui_pos;
     }
 
     pointerup(ev:PointerEvent){
+        if(this.draggedUI == undefined){
+            return;
+        }
+
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
         msg(`up pos:(${pos.x},${pos.y}) ${s}`);
 
+        this.canvas.releasePointerCapture(this.pointerId);
+        this.canvas.classList.remove('dragging');
+
+        this.draggedUI = undefined;
+        this.pointerId = NaN;
+
+        this.requestUpdateCanvas();
     }
 
     resizeCanvas() {
@@ -100,7 +155,14 @@ export class Canvas {
         this.root.setMinSize();
         this.root.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
         this.root.dump(0);
+
+        this.requestUpdateCanvas();
+    }
+
+    repaint(){
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
         this.root.draw(this.ctx);
+        msg("repaint");
     }
 }
 
