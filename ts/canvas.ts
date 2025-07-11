@@ -41,12 +41,10 @@ export class Canvas {
     }
 
     getUIFromPosition(ui : UI, pos : Vec2) : UI | undefined {
-        if(ui instanceof Block){
-            for(const child of ui.children){
-                const target = this.getUIFromPosition(child, pos);
-                if(target != undefined){
-                    return target;
-                }
+        for(const child of ui.children()){
+            const target = this.getUIFromPosition(child, pos);
+            if(target != undefined){
+                return target;
             }
         }
 

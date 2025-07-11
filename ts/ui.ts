@@ -33,15 +33,12 @@ function pixel(length : string,  remaining_length? : number) : number {
 
 export function setContext2D(ctx : CanvasRenderingContext2D, ui : UI){
     ui.ctx = ctx;
-    if(ui instanceof Block){
-        ui.children.forEach(child => setContext2D(ctx, child));
-    }
+    ui.children().forEach(child => setContext2D(ctx, child));
 }
 
 export interface Attr {
     id? : string;
     className? : string;
-    parent? : Block;
     obj? : any;
     name? : string;
     position? : string;
@@ -99,6 +96,22 @@ export abstract class UI {
             this.colspan = data.colspan;
         }
         this.backgroundColor = data.backgroundColor;
+    }
+
+    children() : UI[] {
+        return [];
+    }    
+
+    getAllUISub(uis : UI[]){
+        uis.push(this);
+        this.children().forEach(x => x.getAllUISub(uis));
+    }
+
+    getAllUI() : UI[] {
+        let uis : UI[] = [];
+        this.getAllUISub(uis);
+
+        return uis;
     }
 
     marginWidth() : number {
@@ -295,31 +308,7 @@ export class Editor extends UI {
 
 }
 
-export abstract class Block extends UI {
-    children : UI[] = [];
-
-    constructor(data : Attr & { children : UI[] }){
-        super(data);
-        this.children = data.children.slice();
-    }
-
-    getAllUI() : UI[] {
-        let uis : UI[] = [ this ];
-        for(const child of this.children){
-            if(child instanceof Block){
-                uis = uis.concat(child.getAllUI());
-            }
-            else{
-                uis.push(child);
-            }
-        }
-
-        return uis;
-    }
-}
-
-
-export class Grid extends Block {
+export class Grid extends UI {
     colDescs : string[];
     rowDescs   : string[];
     cells : UI[][];
@@ -334,7 +323,6 @@ export class Grid extends Block {
     numCols : number;
 
     constructor(data : GridAttr){        
-        (data as any).children = data.cells.flat();
         super(data as any);
 
         this.cells = data.cells;
@@ -360,6 +348,10 @@ export class Grid extends Block {
 
         assert(this.colDescs.length == this.numCols);
         assert(this.rowDescs.length   == this.numRows);
+    }
+
+    children() : UI[] {
+        return this.cells.flat();
     }
 
     getRow(idx : number) : UI[] {
@@ -531,7 +523,7 @@ export class Grid extends Block {
     setMinSize() : void {
         this.minSize = Vec2.zero();
 
-        this.children.forEach(x => x.setMinSize());
+        this.children().forEach(x => x.setMinSize());
         this.setMinSizeSub(true);
         this.setMinSizeSub(false);
     }
@@ -654,7 +646,7 @@ export class Grid extends Block {
 
     draw(ctx : CanvasRenderingContext2D){
         super.draw(ctx);
-        this.children.forEach(x => x.draw(ctx));
+        this.children().forEach(x => x.draw(ctx));
     }
 
     str() : string {
