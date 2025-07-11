@@ -1,6 +1,8 @@
 namespace diagram_ts {
 //
-const AUTO = "*";
+const AUTO = "auto";
+const TextSizeFill = 8;
+const textColor = "black";
 
 function ratio(width : string) : number {
     width = width.trim();
@@ -29,6 +31,13 @@ function pixel(length : string,  remaining_length? : number) : number {
     throw new MyError();
 }
 
+export function setContext2D(ctx : CanvasRenderingContext2D, ui : UI){
+    ui.ctx = ctx;
+    if(ui instanceof Block){
+        ui.children.forEach(child => setContext2D(ctx, child));
+    }
+}
+
 export interface Attr {
     id? : string;
     className? : string;
@@ -45,8 +54,6 @@ export interface Attr {
     paddingLeft? : string;
     verticalAlign? : string;
     horizontalAlign? : string;
-    textAlign? : string;
-    fontSize? : string;
     colspan? : number;
     width? : string;
     height? : string;
@@ -54,7 +61,24 @@ export interface Attr {
     visibility? : string;
 }
 
+export interface TextAttr extends Attr {
+    text? : string;
+    fontSize? : string;
+    textAlign? : string;
+}
+
+export interface GridAttr extends Attr {
+    columns?: string;
+    rows?   : string;
+    cells : UI[][];
+}
+
+
 export abstract class UI {
+    static count : number = 0;
+
+    idx : number;
+    ctx! : CanvasRenderingContext2D;
     position : Vec2 = Vec2.zero();
     boxSize  : Vec2 = Vec2.zero();
     width? : string;
@@ -70,6 +94,7 @@ export abstract class UI {
     backgroundColor? : string;
 
     constructor(data : Attr){
+        this.idx = ++UI.count;
         if(data.colspan != undefined){
             this.colspan = data.colspan;
         }
@@ -209,6 +234,54 @@ export abstract class UI {
 export class Filler extends UI {
 }
 
+export class TextUI extends UI {
+    fontSize? : string;
+    textAlign? : string;
+    text : string;
+    metrics!: TextMetrics;
+    actualHeight!: number;
+
+    constructor(data : TextAttr){
+        super(data);
+        this.fontSize  = data.fontSize;
+        this.textAlign = data.textAlign;
+        this.text = (data.text != undefined ? data.text : "");
+    }
+
+
+    setMinSize() : void {
+        this.metrics = this.ctx.measureText(this.text);
+      
+        this.actualHeight = this.metrics.actualBoundingBoxAscent + this.metrics.actualBoundingBoxDescent;
+      
+        msg(`idx:[${this.idx}]  font :[${this.fontSize}]  w:[${this.metrics.width}] h:[${this.actualHeight}] [${this.text}]`);
+
+        const width  = this.metrics.width + this.marginBorderPaddingWidth() + TextSizeFill;
+        const height = this.actualHeight  + this.marginBorderPaddingHeight() + TextSizeFill;
+
+        this.minSize = new Vec2(width, height);
+    }
+
+    draw(ctx : CanvasRenderingContext2D){
+        super.draw(ctx);
+
+        const x = this.position.x + this.margin[0] + this.borderWidth + this.padding[0];
+        const y = this.position.y + this.margin[2] + this.borderWidth + this.padding[2]
+                  + this.actualHeight;
+
+        ctx.strokeStyle = textColor;
+        ctx.strokeText(this.text, x, y);
+    }
+
+    str() : string {
+        return `${super.str()} text:${this.text}`;
+    }
+
+}
+
+export class Label extends TextUI {
+}
+
 export abstract class Node extends UI {
     abstract done() : boolean;
     abstract drawNode(canvas : Canvas) : void;
@@ -260,7 +333,7 @@ export class Grid extends Block {
     numRows : number;
     numCols : number;
 
-    constructor(data : Attr & { columns?: string, rows? : string, cells : UI[][] }){        
+    constructor(data : GridAttr){        
         (data as any).children = data.cells.flat();
         super(data as any);
 
@@ -334,9 +407,7 @@ export class Grid extends Block {
     }
 
     setMinSizeSub(is_width : boolean) : void {
-        this.minWidths = arrayFill(this.colDescs.length, 0);
-
-        let offset_size_px_uis : [number, number, UI][] = [];
+        let offset_size_px_ui_spans : [number, number, UI, number][] = [];
 
         const min_sizes = arrayFill(is_width ? this.numCols : this.numRows, 0);
         for(const [row_idx, row] of this.cells.entries()){
@@ -371,7 +442,7 @@ export class Grid extends Block {
                     }
                 }
                 else{
-                    offset_size_px_uis.push([pos, size_px, ui]);
+                    offset_size_px_ui_spans.push([pos, size_px, ui, ui_span]);
 
                 }
 
@@ -381,18 +452,18 @@ export class Grid extends Block {
 
         let max_remaining_size = 0;
 
-        for(const [offset, width_px, ui] of offset_size_px_uis){
+        const descs = (is_width ? this.colDescs : this.rowDescs);
+        for(const [offset, width_px, ui, ui_span] of offset_size_px_ui_spans){
             let fixed_px = 0;
             let ratio_sum = 0;
-            for(const idx of range2(offset, offset + ui.colspan)){
-                if(this.colDescs[idx].endsWith("%")){
-                    ratio_sum += ratio(this.colDescs[idx]);
+            for(const idx of range2(offset, offset + ui_span)){
+                if(descs[idx].endsWith("%")){
+                    ratio_sum += ratio(descs[idx]);
                 }
                 else{
                     fixed_px += min_sizes[idx];
                 }
             }
-
 
             if(ratio_sum == 0){
 
@@ -415,8 +486,7 @@ export class Grid extends Block {
             }
         }
 
-
-        for(const [idx, col] of this.colDescs.entries()){
+        for(const [idx, col] of descs.entries()){
             if(col.endsWith("px")){
                 min_sizes[idx] = pixel(col);
             }
@@ -426,8 +496,6 @@ export class Grid extends Block {
         }
 
         const size = sum(min_sizes);
-
-
 
         const this_size = (is_width ? this.width : this.height);
         let   this_size_px : number;
@@ -480,6 +548,9 @@ export class Grid extends Block {
             }
             else if(desc.endsWith("%")){
                 sizes[idx] = ratio(desc) * remaining_px;
+            }
+            else if(desc == "auto"){
+                sizes[idx] = min_sizes[idx];
             }
             else{
                 throw new MyError();
@@ -609,14 +680,28 @@ export class Grid extends Block {
     }
 }
 
+export function $label(data : TextAttr) : Label {
+    return new Label(data);
+}
 
-export function $filler(data : Attr & { children : UI[] }) : Filler {
+export function $filler(data : Attr) : Filler {
     return new Filler(data);
 }
 
-export function $grid(data : Attr & { columns?: string, rows? : string, cells : UI[][] }) : Grid {
-    
+export function $grid(data : GridAttr) : Grid {    
     return new Grid(data);
+}
+
+export function $vlist(data : Attr & { rows? : string, column?: string, children : UI[] }){
+    const grid_data = data as any as GridAttr;
+
+    grid_data.columns = data.column;
+    grid_data.cells   = data.children.map(x => [x]);
+
+    delete (data as any).children;
+    delete (data as any).column;
+
+    return $grid(grid_data);
 }
 
 }

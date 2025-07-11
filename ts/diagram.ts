@@ -103,25 +103,36 @@ export class Main {
                 [
                     $filler({
                         colspan : 3,
-                        children : [],
                         backgroundColor : "cornsilk"
                     })
                 ]
                 ,
                 [
-                    $filler({
-                        children : []
-                    })
+                    $filler({})
                     ,
-                    $filler({
-                        children : []
+                    $vlist({
+                        column : "100%",
+                        children : [
+                            $label({
+                                text : "button"
+                            })
+                            ,
+                            $label({
+                                text : "push"
+                            })
+                            ,
+                            $label({
+                                text : "camera"
+                            })
+                        ]
                     })
                     ,
                     this.editor
                 ]
             ]
         });
-        
+
+        setContext2D(this.ctx, this.root);
 
         // Initial resize when the page loads
         // Use DOMContentLoaded to ensure the canvas element exists before trying to access it
