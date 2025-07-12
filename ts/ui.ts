@@ -153,13 +153,18 @@ export abstract class UI {
         this.boxSize = size;
     }
 
-    draw(ctx : CanvasRenderingContext2D){
+    drawBox() : [Vec2, Vec2] {
         const x = this.position.x + this.margin[0];
         const y = this.position.y + this.margin[2];
         const w = this.boxSize.x - this.marginWidth();
         const h = this.boxSize.y - this.marginHeight();
 
-        this.drawRidgeRect2(ctx, x, y, w, h, this.borderWidth);
+        return [ new Vec2(x, y), new Vec2(w, h) ];
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        this.drawRidgeRect2(this.ctx, pos.x, pos.y, size.x, size.y, this.borderWidth);
     }
 
     str() : string {
@@ -275,15 +280,15 @@ export class TextUI extends UI {
         this.minSize = new Vec2(width, height);
     }
 
-    draw(ctx : CanvasRenderingContext2D){
-        super.draw(ctx);
+    draw(){
+        super.draw();
 
         const x = this.position.x + this.margin[0] + this.borderWidth + this.padding[0];
         const y = this.position.y + this.margin[2] + this.borderWidth + this.padding[2]
                   + this.actualHeight;
 
-        ctx.strokeStyle = textColor;
-        ctx.strokeText(this.text, x, y);
+        this.ctx.strokeStyle = textColor;
+        this.ctx.strokeText(this.text, x, y);
     }
 
     str() : string {
@@ -644,9 +649,9 @@ export class Grid extends UI {
         this.layout(x, y, size, 0);
     }
 
-    draw(ctx : CanvasRenderingContext2D){
-        super.draw(ctx);
-        this.children().forEach(x => x.draw(ctx));
+    draw(){
+        super.draw();
+        this.children().forEach(x => x.draw());
     }
 
     str() : string {

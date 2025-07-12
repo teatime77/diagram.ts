@@ -112,7 +112,7 @@ export class Canvas {
         const diff_pos = this.movePos.sub(this.downPos);
 
         this.draggedUI.position = ui_pos.add(diff_pos);
-        this.draggedUI.draw(this.ctx);
+        this.draggedUI.draw();
         this.draggedUI.position = ui_pos;
     }
 
@@ -161,7 +161,7 @@ export class Canvas {
 
     repaint(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
-        this.root.draw(this.ctx);
+        this.root.draw();
         msg("repaint");
     }
 }

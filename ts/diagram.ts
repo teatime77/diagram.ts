@@ -114,6 +114,12 @@ export class Main {
                             $label({
                                 text : "camera"
                             })
+                            ,
+                            $if_block()
+                            ,
+                            $label({
+                                text : "video"
+                            })
                         ]
                     })
                     ,
