@@ -3,6 +3,8 @@ namespace diagram_ts {
 let animationFrameId : number | null = null;
 
 export class Canvas {
+    static one : Canvas;
+
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
     root   : Grid;
@@ -11,8 +13,10 @@ export class Canvas {
 
     downPos : Vec2 = Vec2.zero();
     movePos : Vec2 = Vec2.zero();
+    uiOrgPos : Vec2 = Vec2.zero();
 
     constructor(canvas_html : HTMLCanvasElement, root : Grid){
+        Canvas.one = this;
         this.canvas = canvas_html;
         this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
         if (!this.ctx) {
@@ -66,10 +70,23 @@ export class Canvas {
     pointerdown(ev:PointerEvent){
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
-        if(target != undefined){
+        if(target instanceof Block){
             this.downPos   = pos;
             this.movePos   = pos;
-            this.draggedUI = target;
+
+            if(target.parent == undefined){
+
+                const block = target.copy();
+                Main.one.editor.addBlock(block);
+
+                this.draggedUI = block
+            }
+            else{
+
+                this.draggedUI = target;
+            }
+
+            this.uiOrgPos  = this.draggedUI.position.copy();
             this.pointerId = ev.pointerId;
 
             this.canvas.setPointerCapture(this.pointerId);
@@ -89,31 +106,24 @@ export class Canvas {
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
 
         this.movePos = pos;
-        msg(`move pos:(${pos.x},${pos.y}) ${s}`);
+
+        const diff = this.movePos.sub(this.downPos);
+        this.draggedUI.position = this.uiOrgPos.add(diff);
+
+        // msg(`move pos:(${pos.x},${pos.y}) ${s}`);
 
         this.requestUpdateCanvas();
     }
 
     requestUpdateCanvas(){
         if (animationFrameId == null) {
-            animationFrameId = requestAnimationFrame(this.updateCanvas.bind(this));
+
+            animationFrameId = requestAnimationFrame(()=>{
+                animationFrameId = null;
+                this.repaint();
+            });
+
         }        
-    }
-
-    updateCanvas(){
-        animationFrameId = null;
-        this.repaint();
-
-        if(this.draggedUI == undefined){
-            return;
-        }
-
-        const ui_pos = this.draggedUI.position;
-        const diff_pos = this.movePos.sub(this.downPos);
-
-        this.draggedUI.position = ui_pos.add(diff_pos);
-        this.draggedUI.draw();
-        this.draggedUI.position = ui_pos;
     }
 
     pointerup(ev:PointerEvent){

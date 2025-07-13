@@ -310,7 +310,22 @@ export abstract class Node extends UI {
 }
 
 export class Editor extends UI {
+    blocks : Block[] = [];
 
+    children() : UI[] {
+        return this.blocks.slice();
+    }
+
+    addBlock(block : Block){
+        this.blocks.push(block);
+        block.parent = this;
+    }
+
+    draw(){
+        super.draw();
+
+        this.blocks.forEach(x => x.draw());
+    }
 }
 
 export class Grid extends UI {

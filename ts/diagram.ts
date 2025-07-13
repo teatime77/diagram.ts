@@ -78,10 +78,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 let main : Main;
 
 export class Main {
+    static one : Main;
     canvas : Canvas;
     editor : Editor;
 
     constructor(){
+        Main.one = this;
         // Get the canvas element
 
         this.editor = new Editor({});
@@ -116,6 +118,10 @@ export class Main {
                             })
                             ,
                             $if_block()
+                            ,
+                            new ConditionBlock()
+                            ,
+                            new ActionBlock()
                             ,
                             $label({
                                 text : "video"

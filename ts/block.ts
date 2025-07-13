@@ -15,6 +15,7 @@ enum NotchType {
 }
 
 export abstract class Block extends UI {
+    parent? : UI;
     outlineColor : string = "green";
     outlineBox! : Vec2;
     notchBottom : boolean = true;
@@ -26,6 +27,16 @@ export abstract class Block extends UI {
             this.backgroundColor = "cornsilk";
         }
         this.padding = [5, 5, 5, 5];
+    }
+
+    abstract copy() : Block;
+
+    copyBlock(dst : Block) : Block {
+        const idx = dst.idx;
+        Object.assign(dst, this);
+        dst.idx = idx;
+
+        return dst;
     }
 
     setMinSize() : void {
@@ -50,10 +61,17 @@ export abstract class Block extends UI {
             this.ctx.arc(cx, cy, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
             break;
 
+        case NotchType.Downwards:
+            this.ctx.arc(cx, cy, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
+            break;
         }
     }
 
     drawOutline(points : [number, number, null|NotchType][]){
+        if(Canvas.one.draggedUI == this){
+            this.ctx.globalAlpha = 0.5;
+        }
+
         this.ctx.fillStyle = this.backgroundColor!;
 
         this.ctx.strokeStyle = blockLineColor;
@@ -80,13 +98,21 @@ export abstract class Block extends UI {
         this.ctx.closePath();
         this.ctx.fill();
         this.ctx.stroke();
+
+        if(Canvas.one.draggedUI == this){
+            this.ctx.globalAlpha = 1.0;
+        }
     }
 }
 
 export class IfBlock extends Block {
-    constructor(data : Attr){
-        super(data);
+    constructor(){
+        super({});
         this.outlineBox = new Vec2(150, 100);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new IfBlock());
     }
 
     draw(){
@@ -124,11 +150,72 @@ export class IfBlock extends Block {
             [x2, y1, NotchType.Leftwards]
         ])
     }
+}
+
+export class ConditionBlock extends Block {
+    constructor(){
+        super({});
+        this.outlineBox = new Vec2(150, 50);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new ConditionBlock());
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, 0.5 * (y1 + y2), NotchType.Downwards],
+
+            [x1, y2, null],
+            [x2, y2, null],
+            [x2, y1, null],
+        ])
+    }
+}
 
 
+export class ActionBlock extends Block {
+    constructor(){
+        super({});
+        this.outlineBox = new Vec2(150, 50);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new ActionBlock());
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + 35;
+        const x3 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y2, null],
+            [x2, y2, NotchType.Rightwards],
+            [x3, y2, null],
+
+            [x3, y1, null],
+            [x2, y1, NotchType.Leftwards]
+        ])
+    }
 }
 
 export function $if_block() : IfBlock {
-    return new IfBlock({});
+    return new IfBlock();
 }
 }
