@@ -6,8 +6,10 @@ namespace diagram_ts {
 const notchSize : Vec2 = new Vec2(20, 20);
 const blockLineWidth = 2;
 const blockLineColor = "brown";
+const nearPortDistance = 10;
 
-enum NotchType {
+export enum NotchType {
+    unknown,
     Rightwards,
     Leftwards,
     Downwards,
@@ -16,6 +18,7 @@ enum NotchType {
 
 export abstract class Block extends UI {
     parent? : UI;
+    ports : Port[] = [];
     outlineColor : string = "green";
     outlineBox! : Vec2;
     notchBottom : boolean = true;
@@ -35,6 +38,8 @@ export abstract class Block extends UI {
         const idx = dst.idx;
         Object.assign(dst, this);
         dst.idx = idx;
+
+        dst.ports = this.ports.map(x => x.copyPort(dst));
 
         return dst;
     }
@@ -68,7 +73,12 @@ export abstract class Block extends UI {
     }
 
     drawOutline(points : [number, number, null|NotchType][]){
-        if(Canvas.one.draggedUI == this){
+        const canvas = Canvas.one;
+        if(canvas.draggedBlock == this){
+
+            this.ctx.globalAlpha = 0.5;
+        }
+        else if(canvas.nearPorts.length != 0 && canvas.nearPorts[1].parent == this){
             this.ctx.globalAlpha = 0.5;
         }
 
@@ -79,6 +89,7 @@ export abstract class Block extends UI {
 
         this.ctx.beginPath();
 
+        let port_idx = 0;
         for(const [idx, [x, y, type]] of points.entries()){
             if(idx == 0){
 
@@ -90,7 +101,16 @@ export abstract class Block extends UI {
                     this.ctx.lineTo(x, y);
                 }
                 else{
+                    const port = this.ports[port_idx];
+
+                    port.type = type;
                     this.drawNotch(x, y, type);
+
+                    const port_pos = port.position;
+                    port_pos.x = x;
+                    port_pos.y = y;
+
+                    port_idx++;
                 }
             }
         }
@@ -99,15 +119,28 @@ export abstract class Block extends UI {
         this.ctx.fill();
         this.ctx.stroke();
 
-        if(Canvas.one.draggedUI == this){
+        if(this.ctx.globalAlpha != 1.0){
             this.ctx.globalAlpha = 1.0;
         }
+    }
+
+    canConnectNearPortPair(block : Block) : Port[] {
+        for(const port1 of this.ports){
+            for(const port2 of block.ports){
+                if(port1.canConnect(port2) && port1.position.distance(port2.position) <= nearPortDistance){
+                    return [port1, port2];
+                }
+            }
+        }
+
+        return [];
     }
 }
 
 export class IfBlock extends Block {
     constructor(){
         super({});
+        this.ports = range(4).map((i) => new Port(this));
         this.outlineBox = new Vec2(150, 100);
     }
 
@@ -155,6 +188,7 @@ export class IfBlock extends Block {
 export class ConditionBlock extends Block {
     constructor(){
         super({});
+        this.ports = [ new Port(this) ];
         this.outlineBox = new Vec2(150, 50);
     }
 
@@ -186,6 +220,7 @@ export class ConditionBlock extends Block {
 export class ActionBlock extends Block {
     constructor(){
         super({});
+        this.ports = range(2).map((i) => new Port(this));
         this.outlineBox = new Vec2(150, 50);
     }
 

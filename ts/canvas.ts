@@ -8,7 +8,8 @@ export class Canvas {
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
     root   : Grid;
-    draggedUI? : UI;
+    draggedBlock? : Block;
+    nearPorts : Port[] = [];
     pointerId : number = NaN;
 
     downPos : Vec2 = Vec2.zero();
@@ -79,14 +80,14 @@ export class Canvas {
                 const block = target.copy();
                 Main.one.editor.addBlock(block);
 
-                this.draggedUI = block
+                this.draggedBlock = block
             }
             else{
 
-                this.draggedUI = target;
+                this.draggedBlock = target;
             }
 
-            this.uiOrgPos  = this.draggedUI.position.copy();
+            this.uiOrgPos  = this.draggedBlock.position.copy();
             this.pointerId = ev.pointerId;
 
             this.canvas.setPointerCapture(this.pointerId);
@@ -97,7 +98,7 @@ export class Canvas {
     }
 
     pointermove(ev:PointerEvent){
-        if(this.draggedUI == undefined){
+        if(this.draggedBlock == undefined){
             return;
         }
 
@@ -108,7 +109,18 @@ export class Canvas {
         this.movePos = pos;
 
         const diff = this.movePos.sub(this.downPos);
-        this.draggedUI.position = this.uiOrgPos.add(diff);
+        this.draggedBlock.position = this.uiOrgPos.add(diff);
+
+        this.nearPorts = [];
+        const other_blocks = Main.one.editor.blocks.filter(x => x != this.draggedBlock);
+        for(const block of other_blocks){
+            const near_ports = this.draggedBlock.canConnectNearPortPair(block);
+            if(near_ports.length != 0){
+                msg(`near`);
+                this.nearPorts = near_ports;
+                break;
+            }
+        }
 
         // msg(`move pos:(${pos.x},${pos.y}) ${s}`);
 
@@ -127,7 +139,7 @@ export class Canvas {
     }
 
     pointerup(ev:PointerEvent){
-        if(this.draggedUI == undefined){
+        if(this.draggedBlock == undefined){
             return;
         }
 
@@ -139,7 +151,7 @@ export class Canvas {
         this.canvas.releasePointerCapture(this.pointerId);
         this.canvas.classList.remove('dragging');
 
-        this.draggedUI = undefined;
+        this.draggedBlock = undefined;
         this.pointerId = NaN;
 
         this.requestUpdateCanvas();

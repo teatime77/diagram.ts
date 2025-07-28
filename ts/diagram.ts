@@ -21,16 +21,40 @@ export class DataType {
 
 }
 
-export abstract class Port {
-    parent! : Node;
+export class Port {
+    parent : Block;
     destinations : Port[] = [];
+    type : NotchType = NotchType.unknown;
     pipes : Pipe[] = [];
-    position! : Vec2;
+    position : Vec2 = Vec2.zero();
 
     prevValue : any | undefined;
     value : any | undefined;
 
-    abstract drawPort(canvas : Canvas) : void;
+    constructor(parent : Block){
+        this.parent = parent;
+    }
+
+    copyPort(parent : Block) : Port {
+        const port = new Port(parent);
+        port.position = this.position.copy();
+
+        return port;
+    }
+
+    drawPort(canvas : Canvas) : void {        
+    }
+
+    canConnect(dst : Port) : boolean {
+        const pairs = [
+            [ NotchType.Rightwards, NotchType.Leftwards],
+            [ NotchType.Leftwards , NotchType.Rightwards],
+            [ NotchType.Downwards , NotchType.Upwards],
+            [ NotchType.Upwards   , NotchType.Downwards]
+        ];
+
+        return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
+    }
 
     connect(dst : Port) : void {        
     }
