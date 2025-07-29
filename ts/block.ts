@@ -10,10 +10,10 @@ const nearPortDistance = 10;
 
 export enum NotchType {
     unknown,
-    Rightwards,
-    Leftwards,
-    Downwards,
-    Upwards
+    bottom,
+    top,
+    left,
+    right
 }
 
 export abstract class Block extends UI {
@@ -55,18 +55,18 @@ export abstract class Block extends UI {
         const radius = 10;
 
         switch(type){
-        case NotchType.Rightwards:
+        case NotchType.bottom:
             this.ctx.arc(cx, cy, radius, Math.PI, 0, true);
             break;
-        case NotchType.Leftwards:
+        case NotchType.top:
             this.ctx.arc(cx, cy, radius, 0, Math.PI, false);
             break;
 
-        case NotchType.Upwards:
+        case NotchType.right:
             this.ctx.arc(cx, cy, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
             break;
 
-        case NotchType.Downwards:
+        case NotchType.left:
             this.ctx.arc(cx, cy, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
             break;
         }
@@ -137,6 +137,48 @@ export abstract class Block extends UI {
     }
 }
 
+
+export class StartBlock extends Block {
+    constructor(){
+        super({});
+        this.ports = [ new Port(this) ];
+        this.outlineBox = new Vec2(150, 50);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new StartBlock());
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + 35;
+        const x3 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y2, null],
+            [x2, y2, NotchType.bottom],
+            [x3, y2, null],
+
+            [x3, y1, null],
+        ]);
+
+        const x = this.position.x + 20;
+        const y = this.position.y + 40;
+
+        this.ctx.strokeStyle = textColor;
+        this.ctx.strokeText("Start", x, y);
+
+    }
+}
+
+
+
 export class IfBlock extends Block {
     constructor(){
         super({});
@@ -166,21 +208,20 @@ export class IfBlock extends Block {
             [x1, y1, null],
 
             [x1, y4, null],
-            [x2, y4, NotchType.Rightwards],
+            [x2, y4, NotchType.bottom],
             [x4, y4, null],
 
             [x4, y3, null],
-            // [x3, y3, NotchType.RightToLeft],
             [x2, y3, null],
 
             [x2, y2, null],
-            [x3, y2, NotchType.Rightwards],
+            [x3, y2, NotchType.bottom],
             [x4, y2, null],
 
-            [x4, 0.5 * (y1 + y2), NotchType.Upwards],
+            [x4, 0.5 * (y1 + y2), NotchType.right],
 
             [x4, y1, null],
-            [x2, y1, NotchType.Leftwards]
+            [x2, y1, NotchType.top]
         ])
     }
 }
@@ -207,7 +248,7 @@ export class ConditionBlock extends Block {
         this.drawOutline([
             [x1, y1, null],
 
-            [x1, 0.5 * (y1 + y2), NotchType.Downwards],
+            [x1, 0.5 * (y1 + y2), NotchType.left],
 
             [x1, y2, null],
             [x2, y2, null],
@@ -241,11 +282,11 @@ export class ActionBlock extends Block {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, NotchType.Rightwards],
+            [x2, y2, NotchType.bottom],
             [x3, y2, null],
 
             [x3, y1, null],
-            [x2, y1, NotchType.Leftwards]
+            [x2, y1, NotchType.top]
         ])
     }
 }

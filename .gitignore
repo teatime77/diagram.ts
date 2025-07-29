@@ -6,3 +6,4 @@ public/lib/plane
 public/lib/webgpu
 public/lib/diagram
 ts/@types
+copy.sh

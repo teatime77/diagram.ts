@@ -2,7 +2,7 @@ namespace diagram_ts {
 //
 const AUTO = "auto";
 const TextSizeFill = 8;
-const textColor = "black";
+export const textColor = "black";
 
 function ratio(width : string) : number {
     width = width.trim();

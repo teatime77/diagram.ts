@@ -16,6 +16,8 @@ export class Canvas {
     movePos : Vec2 = Vec2.zero();
     uiOrgPos : Vec2 = Vec2.zero();
 
+    moved : boolean = false;
+
     constructor(canvas_html : HTMLCanvasElement, root : Grid){
         Canvas.one = this;
         this.canvas = canvas_html;
@@ -69,6 +71,8 @@ export class Canvas {
     }
 
     pointerdown(ev:PointerEvent){
+        this.moved = false;
+
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
         if(target instanceof Block){
@@ -93,11 +97,14 @@ export class Canvas {
             this.canvas.setPointerCapture(this.pointerId);
             this.canvas.classList.add('dragging');
         }
-        const s = (target == undefined ? "" : `target:[${target.str()}]`);
-        msg(`down pos:(${pos.x},${pos.y}) ${s}`);
+
+        // const s = (target == undefined ? "" : `target:[${target.str()}]`);
+        // msg(`down pos:(${pos.x},${pos.y}) ${s}`);
     }
 
     pointermove(ev:PointerEvent){
+        this.moved = true;
+
         if(this.draggedBlock == undefined){
             return;
         }
@@ -145,8 +152,8 @@ export class Canvas {
 
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
-        const s = (target == undefined ? "" : `target:[${target.str()}]`);
-        msg(`up pos:(${pos.x},${pos.y}) ${s}`);
+        // const s = (target == undefined ? "" : `target:[${target.str()}]`);
+        // msg(`up pos:(${pos.x},${pos.y}) ${s}`);
 
         this.canvas.releasePointerCapture(this.pointerId);
         this.canvas.classList.remove('dragging');
@@ -155,6 +162,16 @@ export class Canvas {
         this.pointerId = NaN;
 
         this.requestUpdateCanvas();
+
+        if(this.moved){
+            msg("dragged");
+        }
+        else{
+            msg("click");
+        }
+
+        this.moved = false;
+
     }
 
     resizeCanvas() {
@@ -184,7 +201,7 @@ export class Canvas {
     repaint(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
         this.root.draw();
-        msg("repaint");
+        // msg("repaint");
     }
 }
 

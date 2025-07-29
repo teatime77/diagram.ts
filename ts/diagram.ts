@@ -47,10 +47,10 @@ export class Port {
 
     canConnect(dst : Port) : boolean {
         const pairs = [
-            [ NotchType.Rightwards, NotchType.Leftwards],
-            [ NotchType.Leftwards , NotchType.Rightwards],
-            [ NotchType.Downwards , NotchType.Upwards],
-            [ NotchType.Upwards   , NotchType.Downwards]
+            [ NotchType.bottom, NotchType.top],
+            [ NotchType.top , NotchType.bottom],
+            [ NotchType.left , NotchType.right],
+            [ NotchType.right   , NotchType.left]
         ];
 
         return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
@@ -140,6 +140,8 @@ export class Main {
                             $label({
                                 text : "camera"
                             })
+                            ,
+                            new StartBlock()
                             ,
                             $if_block()
                             ,
