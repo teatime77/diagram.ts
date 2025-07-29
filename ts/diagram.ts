@@ -1,6 +1,6 @@
 namespace diagram_ts {
 //
-
+export let urlOrigin : string;
 
 class Variable {
     name! : string;
@@ -178,6 +178,11 @@ export class Main {
 
 export async function asyncBodyOnLoad(){
     msg("loaded");
+    let pathname  : string;
+    [ urlOrigin, pathname, ] = i18n_ts.parseURL();
+    msg(`origin:[${urlOrigin}] path:[${pathname}]`);
+
+
     main = new Main();
 }
 

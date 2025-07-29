@@ -32,8 +32,10 @@ export class Canvas {
 
         this.canvas.addEventListener("pointerdown",  this.pointerdown.bind(this));
         this.canvas.addEventListener("pointermove",  this.pointermove.bind(this));
-        this.canvas.addEventListener("pointerup"  ,  this.pointerup.bind(this));
-
+        
+        this.canvas.addEventListener("pointerup"  , async (ev:PointerEvent)=>{
+            await Canvas.one.pointerup(ev);
+        });
     }
 
     getPositionInCanvas(event : PointerEvent) : Vec2 {
@@ -145,7 +147,7 @@ export class Canvas {
         }        
     }
 
-    pointerup(ev:PointerEvent){
+    async pointerup(ev:PointerEvent){
         if(this.draggedBlock == undefined){
             return;
         }
@@ -155,6 +157,17 @@ export class Canvas {
         // const s = (target == undefined ? "" : `target:[${target.str()}]`);
         // msg(`up pos:(${pos.x},${pos.y}) ${s}`);
 
+
+        if(this.moved){
+            msg("dragged");
+        }
+        else{
+            msg("click");
+            if(this.draggedBlock instanceof StartBlock){
+                await this.draggedBlock.click();
+            }
+        }
+
         this.canvas.releasePointerCapture(this.pointerId);
         this.canvas.classList.remove('dragging');
 
@@ -162,13 +175,6 @@ export class Canvas {
         this.pointerId = NaN;
 
         this.requestUpdateCanvas();
-
-        if(this.moved){
-            msg("dragged");
-        }
-        else{
-            msg("click");
-        }
 
         this.moved = false;
 

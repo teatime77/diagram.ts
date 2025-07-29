@@ -175,6 +175,62 @@ export class StartBlock extends Block {
         this.ctx.strokeText("Start", x, y);
 
     }
+
+    async sendData(){
+        const name = "hamada";
+        const age  = 66;
+
+        const dataToSend = {
+            name: name,
+            age: age
+        };
+
+        const url = `${urlOrigin}/send_data`;
+        msg(`post:[${url}]`);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSend) // Convert JavaScript object to JSON string
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.message}`);
+            }
+
+            const result = await response.json(); // Parse the JSON response from Flask
+            const json_str = JSON.stringify(result, null, 2); // Pretty print JSON
+            msg(`send data result:[${json_str}]`);
+        } catch (error: any) {
+            msg(`send data error: ${error.message || error}`);
+        }
+    }
+
+    async click(){
+        await this.sendData();
+        
+        try {
+            const url = `${urlOrigin}/get_data`;
+            msg(`fetch:[${url}]`);
+            const response = await fetch(url); // Default method is GET
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json(); // Parse the JSON response from Flask
+            const json_str = JSON.stringify(data, null, 2); // Pretty print JSON
+            msg(`start click name:[${data["product_name"]}] price:[${data["price"]}] json:[${json_str}]`);
+        } catch (error: any) {
+            msg(`start click error: ${error.message || error}`);
+        }
+
+
+    }
 }
 
 
