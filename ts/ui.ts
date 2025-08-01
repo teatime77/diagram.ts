@@ -145,10 +145,12 @@ export abstract class UI {
         return this.minSize!.y;
     }
 
+    setPosition(position : Vec2) : void {
+        this.position = position;
+    }
 
     layout(x : number, y : number, size : Vec2, nest : number){
-        this.position.x = x;
-        this.position.y = y;
+        this.setPosition(new Vec2(x, y));
 
         this.boxSize = size;
     }

@@ -118,7 +118,7 @@ export class Canvas {
         this.movePos = pos;
 
         const diff = this.movePos.sub(this.downPos);
-        this.draggedBlock.position = this.uiOrgPos.add(diff);
+        this.draggedBlock.setPosition( this.uiOrgPos.add(diff) );
 
         this.nearPorts = [];
         const other_blocks = Main.one.editor.blocks.filter(x => x != this.draggedBlock);

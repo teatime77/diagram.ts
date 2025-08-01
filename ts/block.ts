@@ -212,7 +212,7 @@ export class StartBlock extends Block {
 
     async click(){
         await this.sendData();
-        
+
         try {
             const url = `${urlOrigin}/get_data`;
             msg(`fetch:[${url}]`);
@@ -343,6 +343,152 @@ export class ActionBlock extends Block {
 
             [x3, y1, null],
             [x2, y1, NotchType.top]
+        ])
+    }
+}
+
+
+export abstract class InputBlock extends Block {
+    input : HTMLInputElement;
+
+    constructor(data : Attr){
+        super(data);
+
+        this.input = document.createElement("input");
+        // this.input.disabled = true;
+        this.input.style.position = "absolute";
+
+        document.body.appendChild(this.input);
+        // this.input.style.display  = "none";
+    }
+
+    copyMember(dst : any, names : string[]){
+        const map = new Map<string, any>();
+
+        for(const name of names){
+            map.set(name, dst[name]);
+        }
+
+        Object.assign(dst, this);
+
+        for(const name of names){
+            dst[name] = map.get(name);
+        }
+    }
+
+    copyBlock(dst : InputBlock) : InputBlock {
+        this.copyMember(dst, [ "idx", "input" ]);
+
+        dst.ports = this.ports.map(x => x.copyPort(dst));
+
+        return dst;
+    }
+
+    copyInput(dst : InputBlock){
+        dst.input = document.createElement("input");
+        dst
+    }
+
+    setPosition(position : Vec2) : void {
+        super.setPosition(position);
+
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        this.input.style.left = `${x1}px`;
+        this.input.style.top  = `${y1}px`;
+    }
+}
+
+
+export class InputRangeBlock extends InputBlock {
+    minInput : HTMLInputElement;
+    maxInput : HTMLInputElement;
+
+    constructor(data : Attr){
+        super(data);
+        this.input.type = "range";
+        this.input.style.width = "100px";
+        this.input.min = "0";
+        this.input.max = "100";
+
+        this.minInput = document.createElement("input");
+        this.minInput.type = "number";
+        this.minInput.value = "0";
+        this.minInput.style.position = "absolute";
+        this.minInput.style.width = "45px";
+
+        this.maxInput = document.createElement("input");
+        this.maxInput.type = "number";
+        this.maxInput.value = "100";
+        this.maxInput.style.position = "absolute";
+        this.maxInput.style.width = "45px";
+
+        document.body.appendChild(this.minInput);
+        document.body.appendChild(this.maxInput);
+
+        this.input.addEventListener("input", (ev : Event) => {
+            msg(`change : [${this.input.value}]`);
+        });
+
+        this.minInput.addEventListener('change', (ev : Event) => {
+            this.input.min = this.minInput.value;
+            msg(`min : [${this.input.min}]`);
+        });
+
+        this.maxInput.addEventListener('change', (ev : Event) => {
+            this.input.max = this.maxInput.value;
+            msg(`max : [${this.input.max}]`);
+        });
+
+        this.ports = [ new Port(this) ];
+        this.outlineBox = new Vec2(200, 50);
+    }
+
+    copyBlock(dst : InputBlock) : InputBlock {
+        this.copyMember(dst, [ "idx", "input", "minInput", "maxInput" ]);
+
+        dst.ports = this.ports.map(x => x.copyPort(dst));
+
+        return dst;
+    }
+
+    copy() : Block {
+        return this.copyBlock(new InputRangeBlock({}));
+    }
+
+    setPosition(position : Vec2) : void {
+        super.setPosition(position);
+
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        this.minInput.style.left = `${x1}px`;
+        this.minInput.style.top  = `${y1}px`;
+
+        this.input.style.left = `${x1 + 45}px`;
+        this.input.style.top  = `${y1}px`;
+
+        this.maxInput.style.left = `${x1 + 45 + 100}px`;
+        this.maxInput.style.top  = `${y1}px`;
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+            [x1, y2, null],
+            [x2, y2, null],
+            [x2, 0.5 * (y1 + y2), NotchType.right],
+            [x2, y1, null],
         ])
     }
 }

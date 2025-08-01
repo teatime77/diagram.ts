@@ -149,6 +149,8 @@ export class Main {
                             ,
                             new ActionBlock()
                             ,
+                            new InputRangeBlock({})
+                            ,                            
                             $label({
                                 text : "video"
                             })
