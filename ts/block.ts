@@ -8,12 +8,15 @@ const blockLineWidth = 2;
 const blockLineColor = "brown";
 const nearPortDistance = 10;
 
-export enum NotchType {
+export enum PortType {
     unknown,
     bottom,
     top,
     left,
-    right
+    right,
+
+    leftPort,
+    rightPort,
 }
 
 export abstract class Block extends UI {
@@ -51,30 +54,37 @@ export abstract class Block extends UI {
         msg(`set-min-size:${this.constructor.name}`);
     }
 
-    drawNotch(cx : number, cy : number, type : NotchType){
-        const radius = 10;
+    getPortFromPosition(pos : Vec2) : Port | undefined {
+        return this.ports.find(x => x.isNear(pos));
+    }
+
+    drawNotch(cx : number, cy : number, type : PortType){
+        const radius = 10;        
 
         switch(type){
-        case NotchType.bottom:
+        case PortType.bottom:
             this.ctx.arc(cx, cy, radius, Math.PI, 0, true);
             break;
-        case NotchType.top:
+        case PortType.top:
             this.ctx.arc(cx, cy, radius, 0, Math.PI, false);
             break;
 
-        case NotchType.right:
+        case PortType.right:
             this.ctx.arc(cx, cy, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
             break;
 
-        case NotchType.left:
+        case PortType.left:
             this.ctx.arc(cx, cy, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
             break;
+
+        default:
+            throw new MyError();
         }
     }
 
-    drawOutline(points : [number, number, null|NotchType][]){
+    drawOutline(points : [number, number, null|PortType][]){
         const canvas = Canvas.one;
-        if(canvas.draggedBlock == this){
+        if(canvas.draggedUI == this){
 
             this.ctx.globalAlpha = 0.5;
         }
@@ -135,6 +145,10 @@ export abstract class Block extends UI {
 
         return [];
     }
+
+    async valueChanged(value : number){
+        msg(`changed : [${value}] ${this.constructor.name}`);
+    }
 }
 
 
@@ -162,7 +176,7 @@ export class StartBlock extends Block {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, NotchType.bottom],
+            [x2, y2, PortType.bottom],
             [x3, y2, null],
 
             [x3, y1, null],
@@ -176,42 +190,12 @@ export class StartBlock extends Block {
 
     }
 
-    async sendData(){
-        const name = "hamada";
-        const age  = 66;
-
-        const dataToSend = {
-            name: name,
-            age: age
-        };
-
-        const url = `${urlOrigin}/send_data`;
-        msg(`post:[${url}]`);
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(dataToSend) // Convert JavaScript object to JSON string
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.message}`);
-            }
-
-            const result = await response.json(); // Parse the JSON response from Flask
-            const json_str = JSON.stringify(result, null, 2); // Pretty print JSON
-            msg(`send data result:[${json_str}]`);
-        } catch (error: any) {
-            msg(`send data error: ${error.message || error}`);
-        }
-    }
-
     async click(){
-        await this.sendData();
+        await sendData({
+            command : "init",
+            name: "hamada",
+            age: 66
+        });
 
         try {
             const url = `${urlOrigin}/get_data`;
@@ -264,20 +248,20 @@ export class IfBlock extends Block {
             [x1, y1, null],
 
             [x1, y4, null],
-            [x2, y4, NotchType.bottom],
+            [x2, y4, PortType.bottom],
             [x4, y4, null],
 
             [x4, y3, null],
             [x2, y3, null],
 
             [x2, y2, null],
-            [x3, y2, NotchType.bottom],
+            [x3, y2, PortType.bottom],
             [x4, y2, null],
 
-            [x4, 0.5 * (y1 + y2), NotchType.right],
+            [x4, 0.5 * (y1 + y2), PortType.right],
 
             [x4, y1, null],
-            [x2, y1, NotchType.top]
+            [x2, y1, PortType.top]
         ])
     }
 }
@@ -304,7 +288,7 @@ export class ConditionBlock extends Block {
         this.drawOutline([
             [x1, y1, null],
 
-            [x1, 0.5 * (y1 + y2), NotchType.left],
+            [x1, 0.5 * (y1 + y2), PortType.left],
 
             [x1, y2, null],
             [x2, y2, null],
@@ -338,11 +322,11 @@ export class ActionBlock extends Block {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, NotchType.bottom],
+            [x2, y2, PortType.bottom],
             [x3, y2, null],
 
             [x3, y1, null],
-            [x2, y1, NotchType.top]
+            [x2, y1, PortType.top]
         ])
     }
 }
@@ -408,6 +392,7 @@ export class InputRangeBlock extends InputBlock {
 
     constructor(data : Attr){
         super(data);
+
         this.input.type = "range";
         this.input.style.width = "100px";
         this.input.min = "0";
@@ -428,8 +413,13 @@ export class InputRangeBlock extends InputBlock {
         document.body.appendChild(this.minInput);
         document.body.appendChild(this.maxInput);
 
-        this.input.addEventListener("input", (ev : Event) => {
-            msg(`change : [${this.input.value}]`);
+        this.input.addEventListener("input", async (ev : Event) => {
+            const value = parseFloat(this.input.value);
+            for(const src of this.ports){
+                for(const dst of src.destinations){
+                    await dst.valueChanged(value);
+                }
+            }
         });
 
         this.minInput.addEventListener('change', (ev : Event) => {
@@ -442,7 +432,7 @@ export class InputRangeBlock extends InputBlock {
             msg(`max : [${this.input.max}]`);
         });
 
-        this.ports = [ new Port(this) ];
+        this.ports = [ new Port(this, PortType.rightPort) ];
         this.outlineBox = new Vec2(200, 50);
     }
 
@@ -487,9 +477,73 @@ export class InputRangeBlock extends InputBlock {
             [x1, y1, null],
             [x1, y2, null],
             [x2, y2, null],
-            [x2, 0.5 * (y1 + y2), NotchType.right],
             [x2, y1, null],
-        ])
+        ]);
+
+        this.ports[0].drawPort(this.ctx, x2, 0.5 * (y1 + y2), PortType.rightPort)
+    }
+}
+
+export class ServoMotorBlock extends InputBlock {
+    constructor(data : Attr){
+        super(data);
+
+        this.input.type = "number";
+        this.input.style.width = "45px";
+        this.input.value = "0";
+        this.input.min   = "0";
+        this.input.max   = "15";
+
+        this.input.addEventListener("input", (ev : Event) => {
+            msg(`change : [${this.input.value}]`);
+        });
+
+        this.ports = [ new Port(this, PortType.leftPort) ];
+        this.outlineBox = new Vec2(200, 50);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new ServoMotorBlock({}));
+    }
+
+    setPosition(position : Vec2) : void {
+        super.setPosition(position);
+
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        this.input.style.left = `${x1}px`;
+        this.input.style.top  = `${y1}px`;
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+            [x1, y2, null],
+            [x2, y2, null],
+            [x2, y1, null],
+        ]);
+
+        this.ports[0].drawPort(this.ctx, x1, 0.5 * (y1 + y2), PortType.leftPort);
+    }
+
+    async valueChanged(value : number){
+        const channel = parseInt(this.input.value);
+        msg(`motor changed : ch:${channel} value:[${value}]`);
+
+        await sendData({
+            command : "servo",
+            channel : channel,
+            value   : value
+        });
     }
 }
 

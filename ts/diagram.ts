@@ -22,41 +22,85 @@ export class DataType {
 }
 
 export class Port {
+    static radius = 10;        
+
     parent : Block;
-    destinations : Port[] = [];
-    type : NotchType = NotchType.unknown;
+    destinations : Set<Port> = new Set<Port>();
+    type : PortType;
     pipes : Pipe[] = [];
     position : Vec2 = Vec2.zero();
 
     prevValue : any | undefined;
     value : any | undefined;
 
-    constructor(parent : Block){
+    constructor(parent : Block, type : PortType = PortType.unknown){
         this.parent = parent;
+        this.type   = type;
+    }
+
+    str() : string {
+        return "port";
     }
 
     copyPort(parent : Block) : Port {
-        const port = new Port(parent);
+        const port = new Port(parent, this.type);
         port.position = this.position.copy();
 
         return port;
     }
 
-    drawPort(canvas : Canvas) : void {        
+    isNear(pos : Vec2){
+        return this.position.distance(pos) < Port.radius;
+    }
+
+    drawPort(ctx : CanvasRenderingContext2D, cx : number, cy : number, type : PortType) : void {       
+        assert(this.type == type);
+
+        ctx.beginPath();
+
+        switch(type){
+        case PortType.leftPort:
+            this.position.x = cx + Port.radius;
+            this.position.y = cy;
+            break;
+
+        case PortType.rightPort:
+            this.position.x = cx - Port.radius;
+            this.position.y = cy;
+            break;
+
+        default:
+            throw new MyError();
+        }
+
+        ctx.arc(this.position.x, this.position.y, Port.radius, 0, 2 * Math.PI);
+
+        ctx.fill();
+        ctx.stroke();
+
+        for(const dst of this.destinations){
+            Canvas.one.drawLine(this.position, dst.position, "brown");
+        }
     }
 
     canConnect(dst : Port) : boolean {
         const pairs = [
-            [ NotchType.bottom, NotchType.top],
-            [ NotchType.top , NotchType.bottom],
-            [ NotchType.left , NotchType.right],
-            [ NotchType.right   , NotchType.left]
+            [ PortType.bottom, PortType.top],
+            [ PortType.top , PortType.bottom],
+            [ PortType.left , PortType.right],
+            [ PortType.right   , PortType.left]
         ];
 
         return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
     }
 
-    connect(dst : Port) : void {        
+    connect(dst : Port) : void {   
+        this.destinations.add(dst);
+        msg(`connect port`);
+    }
+
+    async valueChanged(value : number){
+        await this.parent.valueChanged(value);
     }
 }
 
@@ -114,7 +158,7 @@ export class Main {
 
         const root = $grid({
             rows : "100px 100%",        
-            columns : "100px 20% 80%",
+            columns : "100px 25% 75%",
             cells : [
                 [
                     $filler({
@@ -150,6 +194,8 @@ export class Main {
                             new ActionBlock()
                             ,
                             new InputRangeBlock({})
+                            ,
+                            new ServoMotorBlock({})
                             ,                            
                             $label({
                                 text : "video"
