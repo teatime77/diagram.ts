@@ -8,6 +8,9 @@ const blockLineWidth = 2;
 const blockLineColor = "brown";
 const nearPortDistance = 10;
 
+const rangeWidth  = 150;
+const numberWidth = 45;
+
 export enum PortType {
     unknown,
     bottom,
@@ -339,11 +342,9 @@ export abstract class InputBlock extends Block {
         super(data);
 
         this.input = document.createElement("input");
-        // this.input.disabled = true;
         this.input.style.position = "absolute";
 
         document.body.appendChild(this.input);
-        // this.input.style.display  = "none";
     }
 
     copyMember(dst : any, names : string[]){
@@ -373,12 +374,21 @@ export abstract class InputBlock extends Block {
         dst
     }
 
+    getInputPosition() : [number, number]{
+        const [pos, size] = this.drawBox();
+
+        const rect = this.input.getBoundingClientRect();
+
+        const x1 = pos.x + this.borderWidth + blockLineWidth + 2 * Port.radius;
+        const y1 = pos.y + 0.5 * (size.y - rect.height);
+
+        return [x1, y1];
+    }
+
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const [x1, y1] = this.getInputPosition();
 
         this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
@@ -394,7 +404,7 @@ export class InputRangeBlock extends InputBlock {
         super(data);
 
         this.input.type = "range";
-        this.input.style.width = "100px";
+        this.input.style.width = `${rangeWidth}px`;
         this.input.min = "0";
         this.input.max = "100";
 
@@ -402,13 +412,13 @@ export class InputRangeBlock extends InputBlock {
         this.minInput.type = "number";
         this.minInput.value = "0";
         this.minInput.style.position = "absolute";
-        this.minInput.style.width = "45px";
+        this.minInput.style.width = `${numberWidth}px`;
 
         this.maxInput = document.createElement("input");
         this.maxInput.type = "number";
         this.maxInput.value = "100";
         this.maxInput.style.position = "absolute";
-        this.maxInput.style.width = "45px";
+        this.maxInput.style.width = `${numberWidth}px`;
 
         document.body.appendChild(this.minInput);
         document.body.appendChild(this.maxInput);
@@ -452,17 +462,22 @@ export class InputRangeBlock extends InputBlock {
         super.setPosition(position);
 
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        this.minInput.style.left = `${x1}px`;
-        this.minInput.style.top  = `${y1}px`;
+        const rc1 = this.input.getBoundingClientRect();
+        const rc2 = this.minInput.getBoundingClientRect();
 
-        this.input.style.left = `${x1 + 45}px`;
+        const x1 = pos.x + this.borderWidth + blockLineWidth + 2 * Port.radius;
+        const y1 = pos.y + 0.5 * (size.y - (rc1.height + rc2.height));
+        const y2 = y1 + rc1.height;
+
+        this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
 
-        this.maxInput.style.left = `${x1 + 45 + 100}px`;
-        this.maxInput.style.top  = `${y1}px`;
+        this.minInput.style.left = `${x1}px`;
+        this.minInput.style.top  = `${y2}px`;
+
+        this.maxInput.style.left = `${x1 + rc1.width - rc2.width}px`;
+        this.maxInput.style.top  = `${y2}px`;
     }
 
     draw(){
@@ -480,7 +495,7 @@ export class InputRangeBlock extends InputBlock {
             [x2, y1, null],
         ]);
 
-        this.ports[0].drawPort(this.ctx, x2, 0.5 * (y1 + y2), PortType.rightPort)
+        this.ports[0].drawPort(this.ctx, x2, 0.5 * (y1 + y2));
     }
 }
 
@@ -509,9 +524,7 @@ export class ServoMotorBlock extends InputBlock {
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const [x1, y1] = this.getInputPosition();
 
         this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
@@ -532,7 +545,7 @@ export class ServoMotorBlock extends InputBlock {
             [x2, y1, null],
         ]);
 
-        this.ports[0].drawPort(this.ctx, x1, 0.5 * (y1 + y2), PortType.leftPort);
+        this.ports[0].drawPort(this.ctx, x1, 0.5 * (y1 + y2));
     }
 
     async valueChanged(value : number){
@@ -546,6 +559,66 @@ export class ServoMotorBlock extends InputBlock {
         });
     }
 }
+
+
+export class SetValueBlock extends InputBlock {
+    constructor(data : Attr){
+        super(data);
+
+        this.input.type = "text";
+        this.input.style.width = "45px";
+        this.input.value = "0";
+
+        this.input.addEventListener("change", (ev : Event) => {
+            msg(`change : [${this.input.value}]`);
+        });
+
+        this.ports = [ 
+            new Port(this),
+            new Port(this),
+            new Port(this, PortType.rightPort) 
+        ];
+
+        this.outlineBox = new Vec2(200, 50);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new SetValueBlock({}));
+    }
+
+    setPosition(position : Vec2) : void {
+        super.setPosition(position);
+
+        const [x1, y1] = this.getInputPosition();
+
+        this.input.style.left = `${x1}px`;
+        this.input.style.top  = `${y1}px`;
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + 35;
+        const x3 = x1 + this.outlineBox.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y2, null],
+            [x2, y2, PortType.bottom],
+            [x3, y2, null],
+
+            [x3, y1, null],
+            [x2, y1, PortType.top]
+        ])
+
+        this.ports[2].drawPort(this.ctx, x3, 0.5 * (y1 + y2));
+    }
+}
+
 
 export function $if_block() : IfBlock {
     return new IfBlock();

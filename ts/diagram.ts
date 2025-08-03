@@ -53,12 +53,10 @@ export class Port {
         return this.position.distance(pos) < Port.radius;
     }
 
-    drawPort(ctx : CanvasRenderingContext2D, cx : number, cy : number, type : PortType) : void {       
-        assert(this.type == type);
-
+    drawPort(ctx : CanvasRenderingContext2D, cx : number, cy : number) : void {       
         ctx.beginPath();
 
-        switch(type){
+        switch(this.type){
         case PortType.leftPort:
             this.position.x = cx + Port.radius;
             this.position.y = cy;
@@ -196,6 +194,8 @@ export class Main {
                             new InputRangeBlock({})
                             ,
                             new ServoMotorBlock({})
+                            ,                            
+                            new SetValueBlock({})
                             ,                            
                             $label({
                                 text : "video"

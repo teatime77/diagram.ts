@@ -150,9 +150,8 @@ export abstract class UI {
     }
 
     layout(x : number, y : number, size : Vec2, nest : number){
-        this.setPosition(new Vec2(x, y));
-
         this.boxSize = size;
+        this.setPosition(new Vec2(x, y));
     }
 
     drawBox() : [Vec2, Vec2] {
