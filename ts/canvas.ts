@@ -122,9 +122,20 @@ export class Canvas {
             this.canvas.setPointerCapture(this.pointerId);
             this.canvas.classList.add('dragging');
         }
+    }
 
-        // const s = (target == undefined ? "" : `target:[${target.str()}]`);
-        // msg(`down pos:(${pos.x},${pos.y}) ${s}`);
+    getNearPorts(dragged_block : Block){
+        this.nearPorts = [];
+        const other_blocks = Main.one.editor.blocks.filter(x => x != this.draggedUI);
+        for(const block of other_blocks){
+            const near_ports = dragged_block.canConnectNearPortPair(block);
+            if(near_ports.length != 0){
+                msg(`near`);
+                this.nearPorts = near_ports;
+                break;
+            }
+        }
+
     }
 
     pointermove(ev:PointerEvent){
@@ -140,25 +151,13 @@ export class Canvas {
 
         this.movePos = pos;
 
-        const diff = this.movePos.sub(this.downPos);
+        const diff = pos.sub(this.downPos);
 
         if(this.draggedUI instanceof Block){
 
             this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
-
-            this.nearPorts = [];
-            const other_blocks = Main.one.editor.blocks.filter(x => x != this.draggedUI);
-            for(const block of other_blocks){
-                const near_ports = this.draggedUI.canConnectNearPortPair(block);
-                if(near_ports.length != 0){
-                    msg(`near`);
-                    this.nearPorts = near_ports;
-                    break;
-                }
-            }
+            this.getNearPorts(this.draggedUI);
         }
-
-        // msg(`move pos:(${pos.x},${pos.y}) ${s}`);
 
         this.requestUpdateCanvas();
     }
@@ -187,9 +186,22 @@ export class Canvas {
             if(this.draggedUI instanceof Port && target instanceof Port){
                 this.draggedUI.connect(target);
             }
+            else if(this.draggedUI instanceof Block){
+                const diff = pos.sub(this.downPos);
+
+                this.getNearPorts(this.draggedUI);
+                if(this.nearPorts.length == 2){
+                    const port_diffs = this.nearPorts[1].position.sub(this.nearPorts[0].position);
+                    this.draggedUI.moveDiff(port_diffs);
+                }
+                else{
+                    this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
+                }
+            }
         }
-        else{
+        else if(this.draggedUI instanceof Block){
             msg("click");
+
             if(this.draggedUI instanceof StartBlock){
                 await this.draggedUI.click();
             }
@@ -200,6 +212,7 @@ export class Canvas {
 
         this.draggedUI = undefined;
         this.pointerId = NaN;
+        this.nearPorts = [];
 
         this.requestUpdateCanvas();
 

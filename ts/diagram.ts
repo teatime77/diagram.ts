@@ -187,6 +187,8 @@ export class Main {
                             ,
                             $if_block()
                             ,
+                            new InfiniteLoop()
+                            ,
                             new ConditionBlock()
                             ,
                             new ActionBlock()

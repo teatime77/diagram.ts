@@ -61,6 +61,11 @@ export abstract class Block extends UI {
         return this.ports.find(x => x.isNear(pos));
     }
 
+    moveDiff(diff : Vec2) : void {
+        const new_position = this.position.add(diff);
+        this.setPosition(new_position);
+    }
+
     drawNotch(cx : number, cy : number, type : PortType){
         const radius = 10;        
 
@@ -300,6 +305,50 @@ export class ConditionBlock extends Block {
     }
 }
 
+export class InfiniteLoop extends Block {
+    constructor(){
+        super({});
+        this.ports = [ new Port(this), new Port(this) ];
+        this.outlineBox = new Vec2(150, 100);
+    }
+
+    copy() : Block {
+        return this.copyBlock(new InfiniteLoop());
+    }
+
+    draw(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + 35;
+        const x3 = x2 + 35;
+        const x4 = x1 + this.outlineBox.x;
+
+        const y2 = y1 + 35;
+        const y3 = y2 + 30;
+        const y4 = y3 + 35;
+
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y4, null],
+            [x4, y4, null],
+
+            [x4, y3, null],
+            [x2, y3, null],
+
+            [x2, y2, null],
+            [x3, y2, PortType.bottom],
+            [x4, y2, null],
+
+            [x4, y1, null],
+            [x2, y1, PortType.top]
+        ])
+    }
+
+}
 
 export class ActionBlock extends Block {
     constructor(){
