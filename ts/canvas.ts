@@ -193,6 +193,8 @@ export class Canvas {
                 if(this.nearPorts.length == 2){
                     const port_diffs = this.nearPorts[1].position.sub(this.nearPorts[0].position);
                     this.draggedUI.moveDiff(port_diffs);
+
+                    this.draggedUI.connectBlock(this.nearPorts);
                 }
                 else{
                     this.draggedUI.setPosition( this.uiOrgPos.add(diff) );

@@ -25,7 +25,7 @@ export class Port {
     static radius = 10;        
 
     parent : Block;
-    destinations : Set<Port> = new Set<Port>();
+    destinations : Port[]  = [];
     type : PortType;
     pipes : Pipe[] = [];
     position : Vec2 = Vec2.zero();
@@ -93,7 +93,8 @@ export class Port {
     }
 
     connect(dst : Port) : void {   
-        this.destinations.add(dst);
+        assert(this.type == PortType.bottom && dst.type == PortType.top);
+        append(this.destinations, dst);
         msg(`connect port`);
     }
 

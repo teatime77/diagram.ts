@@ -66,6 +66,62 @@ export abstract class Block extends UI {
         this.setPosition(new_position);
     }
 
+    nextBlock() : Block | undefined {
+        const bottom_port = this.ports.find(x => x.type == PortType.bottom);
+        if(bottom_port == undefined){
+            return undefined;
+        }
+        else{
+            if(bottom_port.destinations.length == 0){
+                return undefined;
+            }
+
+            const next_port = bottom_port.destinations[0];
+
+            return next_port.parent;
+        }
+    }
+
+    totalHeight() : number {
+        let height = this.outlineBox.y;
+
+        for(let block = this.nextBlock(); block != undefined; block = block.nextBlock()){
+            height += block.outlineBox.y;
+        }
+
+        return height;
+    }
+
+    connectBlock(ports : Port[]){
+        let [port1, port2] = ports;
+        assert(port1.parent == this);
+
+        if(port1.type == PortType.bottom){
+            assert(port2.type == PortType.top);
+        }
+        else if(port1.type == PortType.top){
+            assert(port2.type == PortType.bottom);
+            [port1, port2] = [port2, port1];
+        }
+        else{
+            return;
+        }
+        port1.connect(port2);
+
+        msg(`connect block`);
+    }
+
+    innerBlock(port : Port) : Block | undefined {
+        assert(port.type == PortType.bottom);
+
+        if(port.destinations.length == 0){
+            return undefined;
+        }
+        else{
+            return port.destinations[0].parent;
+        }
+    }
+
     drawNotch(cx : number, cy : number, type : PortType){
         const radius = 10;        
 
@@ -90,7 +146,7 @@ export abstract class Block extends UI {
         }
     }
 
-    drawOutline(points : [number, number, null|PortType][]){
+    drawOutline(points : [number, number, null|Port][]){
         const canvas = Canvas.one;
         if(canvas.draggedUI == this){
 
@@ -107,28 +163,22 @@ export abstract class Block extends UI {
 
         this.ctx.beginPath();
 
-        let port_idx = 0;
-        for(const [idx, [x, y, type]] of points.entries()){
+        for(const [idx, [x, y, port]] of points.entries()){
             if(idx == 0){
 
                 this.ctx.moveTo(x, y);
             }
             else{
-                if(type == null){
+                if(port == null){
 
                     this.ctx.lineTo(x, y);
                 }
                 else{
-                    const port = this.ports[port_idx];
-
-                    port.type = type;
-                    this.drawNotch(x, y, type);
+                    this.drawNotch(x, y, port.type);
 
                     const port_pos = port.position;
                     port_pos.x = x;
                     port_pos.y = y;
-
-                    port_idx++;
                 }
             }
         }
@@ -163,7 +213,7 @@ export abstract class Block extends UI {
 export class StartBlock extends Block {
     constructor(){
         super({});
-        this.ports = [ new Port(this) ];
+        this.ports = [ new Port(this, PortType.bottom) ];
         this.outlineBox = new Vec2(150, 50);
     }
 
@@ -184,7 +234,7 @@ export class StartBlock extends Block {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, PortType.bottom],
+            [x2, y2, this.ports[0]],
             [x3, y2, null],
 
             [x3, y1, null],
@@ -230,7 +280,7 @@ export class StartBlock extends Block {
 export class IfBlock extends Block {
     constructor(){
         super({});
-        this.ports = range(4).map((i) => new Port(this));
+        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.right), new Port(this, PortType.bottom), new Port(this, PortType.bottom) ];
         this.outlineBox = new Vec2(150, 100);
     }
 
@@ -243,12 +293,15 @@ export class IfBlock extends Block {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
+        const true_block = this.innerBlock(this.ports[2]);
+        const true_block_height = (true_block == undefined ? 0 : true_block.totalHeight());
+
         const x2 = x1 + 35;
         const x3 = x2 + 35;
         const x4 = x1 + this.outlineBox.x;
 
         const y2 = y1 + 35;
-        const y3 = y2 + 30;
+        const y3 = y2 + 30 + true_block_height;
         const y4 = y3 + 35;
 
 
@@ -256,20 +309,20 @@ export class IfBlock extends Block {
             [x1, y1, null],
 
             [x1, y4, null],
-            [x2, y4, PortType.bottom],
+            [x2, y4, this.ports[3]],
             [x4, y4, null],
 
             [x4, y3, null],
             [x2, y3, null],
 
             [x2, y2, null],
-            [x3, y2, PortType.bottom],
+            [x3, y2, this.ports[2]],
             [x4, y2, null],
 
-            [x4, 0.5 * (y1 + y2), PortType.right],
+            [x4, 0.5 * (y1 + y2), this.ports[1]],
 
             [x4, y1, null],
-            [x2, y1, PortType.top]
+            [x2, y1, this.ports[0]]
         ])
     }
 }
@@ -277,7 +330,7 @@ export class IfBlock extends Block {
 export class ConditionBlock extends Block {
     constructor(){
         super({});
-        this.ports = [ new Port(this) ];
+        this.ports = [ new Port(this, PortType.left) ];
         this.outlineBox = new Vec2(150, 50);
     }
 
@@ -296,7 +349,7 @@ export class ConditionBlock extends Block {
         this.drawOutline([
             [x1, y1, null],
 
-            [x1, 0.5 * (y1 + y2), PortType.left],
+            [x1, 0.5 * (y1 + y2), this.ports[0]],
 
             [x1, y2, null],
             [x2, y2, null],
@@ -308,7 +361,7 @@ export class ConditionBlock extends Block {
 export class InfiniteLoop extends Block {
     constructor(){
         super({});
-        this.ports = [ new Port(this), new Port(this) ];
+        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
         this.outlineBox = new Vec2(150, 100);
     }
 
@@ -321,12 +374,15 @@ export class InfiniteLoop extends Block {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
+        const loop_block = this.innerBlock(this.ports[1]);
+        const loop_block_height = (loop_block == undefined ? 0 : loop_block.totalHeight());
+
         const x2 = x1 + 35;
         const x3 = x2 + 35;
         const x4 = x1 + this.outlineBox.x;
 
         const y2 = y1 + 35;
-        const y3 = y2 + 30;
+        const y3 = y2 + 30 + loop_block_height;
         const y4 = y3 + 35;
 
 
@@ -340,11 +396,11 @@ export class InfiniteLoop extends Block {
             [x2, y3, null],
 
             [x2, y2, null],
-            [x3, y2, PortType.bottom],
+            [x3, y2, this.ports[1]],
             [x4, y2, null],
 
             [x4, y1, null],
-            [x2, y1, PortType.top]
+            [x2, y1, this.ports[0]]
         ])
     }
 
@@ -353,7 +409,7 @@ export class InfiniteLoop extends Block {
 export class ActionBlock extends Block {
     constructor(){
         super({});
-        this.ports = range(2).map((i) => new Port(this));
+        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
         this.outlineBox = new Vec2(150, 50);
     }
 
@@ -374,11 +430,11 @@ export class ActionBlock extends Block {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, PortType.bottom],
+            [x2, y2, this.ports[1]],
             [x3, y2, null],
 
             [x3, y1, null],
-            [x2, y1, PortType.top]
+            [x2, y1, this.ports[0]]
         ])
     }
 }
@@ -623,9 +679,9 @@ export class SetValueBlock extends InputBlock {
         });
 
         this.ports = [ 
-            new Port(this),
-            new Port(this),
-            new Port(this, PortType.rightPort) 
+            new Port(this, PortType.top),
+            new Port(this, PortType.rightPort),
+            new Port(this, PortType.bottom),
         ];
 
         this.outlineBox = new Vec2(200, 50);
@@ -657,14 +713,14 @@ export class SetValueBlock extends InputBlock {
             [x1, y1, null],
 
             [x1, y2, null],
-            [x2, y2, PortType.bottom],
+            [x2, y2, this.ports[2]],
             [x3, y2, null],
 
             [x3, y1, null],
-            [x2, y1, PortType.top]
+            [x2, y1, this.ports[0]]
         ])
 
-        this.ports[2].drawPort(this.ctx, x3, 0.5 * (y1 + y2));
+        this.ports[1].drawPort(this.ctx, x3, 0.5 * (y1 + y2));
     }
 }
 
