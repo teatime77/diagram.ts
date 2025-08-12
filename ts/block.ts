@@ -26,7 +26,6 @@ export abstract class Block extends UI {
     parent? : UI;
     ports : Port[] = [];
     outlineColor : string = "green";
-    outlineBox! : Vec2;
     notchBottom : boolean = true;
     notchRight  : boolean = true;
 
@@ -50,12 +49,7 @@ export abstract class Block extends UI {
         return dst;
     }
 
-    setMinSize() : void {
-        const w = this.outlineBox.x + (this.notchRight  ? notchSize.x : 0);
-        const h = this.outlineBox.y + (this.notchBottom ? notchSize.y : 0);
-        this.minSize = new Vec2(w, h);
-        msg(`set-min-size:${this.constructor.name}`);
-    }
+    abstract setMinSize() : void;
 
     getPortFromPosition(pos : Vec2) : Port | undefined {
         return this.ports.find(x => x.isNear(pos));
@@ -83,10 +77,10 @@ export abstract class Block extends UI {
     }
 
     totalHeight() : number {
-        let height = this.outlineBox.y;
+        let height = this.minSize!.y;
 
         for(let block = this.nextBlock(); block != undefined; block = block.nextBlock()){
-            height += block.outlineBox.y;
+            height += block.minSize!.y;
         }
 
         return height;
@@ -214,7 +208,10 @@ export class StartBlock extends Block {
     constructor(){
         super({});
         this.ports = [ new Port(this, PortType.bottom) ];
-        this.outlineBox = new Vec2(150, 50);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
     }
 
     copy() : Block {
@@ -227,7 +224,7 @@ export class StartBlock extends Block {
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
         const x2 = x1 + 35;
-        const x3 = x1 + this.outlineBox.x;
+        const x3 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([
@@ -281,11 +278,25 @@ export class IfBlock extends Block {
     constructor(){
         super({});
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.right), new Port(this, PortType.bottom), new Port(this, PortType.bottom) ];
-        this.outlineBox = new Vec2(150, 100);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 100);
+
+        const true_block = this.trueBlock();
+        if(true_block != undefined){
+            true_block.setMinSize();
+
+            this.minSize.y += true_block.totalHeight();
+        }
     }
 
     copy() : Block {
         return this.copyBlock(new IfBlock());
+    }
+
+    trueBlock() : Block | undefined {
+        return this.innerBlock(this.ports[2]);
     }
 
     draw(){
@@ -293,12 +304,12 @@ export class IfBlock extends Block {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const true_block = this.innerBlock(this.ports[2]);
+        const true_block = this.trueBlock();
         const true_block_height = (true_block == undefined ? 0 : true_block.totalHeight());
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;
-        const x4 = x1 + this.outlineBox.x;
+        const x4 = x1 + this.minSize!.x;
 
         const y2 = y1 + 35;
         const y3 = y2 + 30 + true_block_height;
@@ -331,7 +342,10 @@ export class ConditionBlock extends Block {
     constructor(){
         super({});
         this.ports = [ new Port(this, PortType.left) ];
-        this.outlineBox = new Vec2(150, 50);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
     }
 
     copy() : Block {
@@ -343,7 +357,7 @@ export class ConditionBlock extends Block {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const x2 = x1 + this.outlineBox.x;
+        const x2 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([
@@ -362,7 +376,21 @@ export class InfiniteLoop extends Block {
     constructor(){
         super({});
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
-        this.outlineBox = new Vec2(150, 100);
+    }
+
+    loopBlock() : Block | undefined {
+        return this.innerBlock(this.ports[1]);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 100);
+
+        const loop_block = this.loopBlock();
+        if(loop_block != undefined){
+            loop_block.setMinSize();
+
+            this.minSize.y += loop_block.totalHeight();
+        }
     }
 
     copy() : Block {
@@ -374,12 +402,12 @@ export class InfiniteLoop extends Block {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const loop_block = this.innerBlock(this.ports[1]);
+        const loop_block = this.loopBlock();
         const loop_block_height = (loop_block == undefined ? 0 : loop_block.totalHeight());
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;
-        const x4 = x1 + this.outlineBox.x;
+        const x4 = x1 + this.minSize!.x;
 
         const y2 = y1 + 35;
         const y3 = y2 + 30 + loop_block_height;
@@ -410,7 +438,10 @@ export class ActionBlock extends Block {
     constructor(){
         super({});
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
-        this.outlineBox = new Vec2(150, 50);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
     }
 
     copy() : Block {
@@ -423,7 +454,7 @@ export class ActionBlock extends Block {
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
         const x2 = x1 + 35;
-        const x3 = x1 + this.outlineBox.x;
+        const x3 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([
@@ -548,7 +579,10 @@ export class InputRangeBlock extends InputBlock {
         });
 
         this.ports = [ new Port(this, PortType.rightPort) ];
-        this.outlineBox = new Vec2(200, 50);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 50);
     }
 
     copyBlock(dst : InputBlock) : InputBlock {
@@ -590,7 +624,7 @@ export class InputRangeBlock extends InputBlock {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const x2 = x1 + this.outlineBox.x;
+        const x2 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([
@@ -619,7 +653,10 @@ export class ServoMotorBlock extends InputBlock {
         });
 
         this.ports = [ new Port(this, PortType.leftPort) ];
-        this.outlineBox = new Vec2(200, 50);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 50);
     }
 
     copy() : Block {
@@ -640,7 +677,7 @@ export class ServoMotorBlock extends InputBlock {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const x2 = x1 + this.outlineBox.x;
+        const x2 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([
@@ -683,8 +720,10 @@ export class SetValueBlock extends InputBlock {
             new Port(this, PortType.rightPort),
             new Port(this, PortType.bottom),
         ];
+    }
 
-        this.outlineBox = new Vec2(200, 50);
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 50);
     }
 
     copy() : Block {
@@ -706,7 +745,7 @@ export class SetValueBlock extends InputBlock {
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
         const x2 = x1 + 35;
-        const x3 = x1 + this.outlineBox.x;
+        const x3 = x1 + this.minSize!.x;
         const y2 = y1 + 50;
 
         this.drawOutline([

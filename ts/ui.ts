@@ -64,6 +64,10 @@ export interface TextAttr extends Attr {
     textAlign? : string;
 }
 
+export interface ButtonAttr extends TextAttr {
+    click : ()=>Promise<void>;
+}
+
 export interface GridAttr extends Attr {
     columns?: string;
     rows?   : string;
@@ -299,6 +303,15 @@ export class TextUI extends UI {
 }
 
 export class Label extends TextUI {
+}
+
+export class Button extends TextUI {
+    click : ()=>Promise<void>;
+
+    constructor(data : ButtonAttr){
+        super(data);
+        this.click = data.click;
+    }
 }
 
 export abstract class Node extends UI {
@@ -697,12 +710,28 @@ export function $label(data : TextAttr) : Label {
     return new Label(data);
 }
 
+export function $button(data : ButtonAttr) : Button {
+    return new Button(data);
+}
+
 export function $filler(data : Attr) : Filler {
     return new Filler(data);
 }
 
 export function $grid(data : GridAttr) : Grid {    
     return new Grid(data);
+}
+
+export function $hlist(data : Attr & { rows? : string, column?: string, children : UI[] }){
+    const grid_data = data as any as GridAttr;
+
+    grid_data.columns = data.column;
+    grid_data.cells   = [ data.children ];
+
+    delete (data as any).children;
+    delete (data as any).column;
+
+    return $grid(grid_data);
 }
 
 export function $vlist(data : Attr & { rows? : string, column?: string, children : UI[] }){

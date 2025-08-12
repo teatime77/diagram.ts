@@ -8,7 +8,7 @@ export class Canvas {
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
     root   : Grid;
-    draggedUI? : Block | Port;
+    draggedUI? : Block | Port | Button;
     nearPorts : Port[] = [];
     pointerId : number = NaN;
 
@@ -91,7 +91,7 @@ export class Canvas {
 
             if(target instanceof Block){
                 if(target instanceof InputRangeBlock){
-                    msg(`range: box${target.boxSize.x.toFixed()} out:${target.outlineBox.x}`);
+                    msg(`range: box${target.boxSize.x.toFixed()} out:${target.minSize!.x}`);
                 }
 
                 if(target.parent == undefined){
@@ -109,6 +109,11 @@ export class Canvas {
             else if(target instanceof Port){
 
                 msg(`down port:${target.str()}`);
+                this.draggedUI = target;
+            }
+            else if(target instanceof Button){
+
+                msg(`down button:${target.text}`);
                 this.draggedUI = target;
             }
             else{
@@ -195,6 +200,7 @@ export class Canvas {
                     this.draggedUI.moveDiff(port_diffs);
 
                     this.draggedUI.connectBlock(this.nearPorts);
+                    this.layoutRoot();
                 }
                 else{
                     this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
@@ -208,6 +214,9 @@ export class Canvas {
                 await this.draggedUI.click();
             }
         }
+        else if(this.draggedUI instanceof Button){
+            await this.draggedUI.click();
+        }
 
         this.canvas.releasePointerCapture(this.pointerId);
         this.canvas.classList.remove('dragging');
@@ -220,6 +229,11 @@ export class Canvas {
 
         this.moved = false;
 
+    }
+
+    layoutRoot(){
+        this.root.setMinSize();
+        this.root.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
     }
 
     resizeCanvas() {
@@ -239,8 +253,7 @@ export class Canvas {
             this.ctx.fillText('Hello Canvas!', this.canvas.width / 2 - 100, this.canvas.height / 2);
         }
 
-        this.root.setMinSize();
-        this.root.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
+        this.layoutRoot();
         this.root.dump(0);
 
         this.requestUpdateCanvas();

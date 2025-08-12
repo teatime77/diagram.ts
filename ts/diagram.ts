@@ -159,11 +159,24 @@ export class Main {
             rows : "100px 100%",        
             columns : "100px 25% 75%",
             cells : [
+                // [
+                //     $filler({
+                //         colspan : 3,
+                //         backgroundColor : "cornsilk"
+                //     })
+                // ]
+                // ,
                 [
-                    $filler({
-                        colspan : 3,
-                        backgroundColor : "cornsilk"
+                    $button({
+                        text : "download",
+                        click : async ()=>{
+                            testDownload();
+                        }
                     })
+                    ,
+                    $filler({})
+                    ,
+                    $filler({})
                 ]
                 ,
                 [
