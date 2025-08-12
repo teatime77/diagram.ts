@@ -49,6 +49,16 @@ export abstract class Block extends UI {
         return dst;
     }
 
+    makeObj() : any{
+        return {
+            idx: this.idx,
+            typeName: this.constructor.name,
+            x : this.position.x,
+            y : this.position.y,
+            ports : this.ports.map(x => x.makeObj())
+        };
+    }
+
     abstract setMinSize() : void;
 
     getPortFromPosition(pos : Vec2) : Port | undefined {

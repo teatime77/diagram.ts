@@ -37,7 +37,6 @@ export function setContext2D(ctx : CanvasRenderingContext2D, ui : UI){
 }
 
 export interface Attr {
-    id? : string;
     className? : string;
     obj? : any;
     name? : string;

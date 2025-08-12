@@ -24,6 +24,7 @@ export class DataType {
 export class Port {
     static radius = 10;        
 
+    idx : number = 0;
     parent : Block;
     destinations : Port[]  = [];
     type : PortType;
@@ -47,6 +48,13 @@ export class Port {
         port.position = this.position.copy();
 
         return port;
+    }
+
+    makeObj() : any{
+        return {
+            idx : this.idx,
+            destinations : this.destinations.map(dst => dst.idx)
+        };
     }
 
     isNear(pos : Vec2){
@@ -95,7 +103,7 @@ export class Port {
     connect(dst : Port) : void {   
         assert(this.type == PortType.bottom && dst.type == PortType.top);
         append(this.destinations, dst);
-        msg(`connect port`);
+        msg(`connect port:${this.idx}=>${dst.idx}`);
     }
 
     async valueChanged(value : number){
@@ -170,7 +178,7 @@ export class Main {
                     $button({
                         text : "download",
                         click : async ()=>{
-                            testDownload();
+                            saveJson();
                         }
                     })
                     ,
@@ -233,6 +241,8 @@ export class Main {
 
         // Add an event listener to resize the canvas whenever the window is resized
         window.addEventListener('resize', this.canvas.resizeCanvas.bind(this.canvas));
+
+        setDragDrop(this.canvas.canvas);
 
         this.canvas.resizeCanvas();
     }
