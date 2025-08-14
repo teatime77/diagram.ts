@@ -3,7 +3,12 @@
 
 namespace diagram_ts {
 //
-const notchSize : Vec2 = new Vec2(20, 20);
+const notchRadius = 10;        
+
+const nest_h1 = 35;
+const nest_h2 = 30;
+const nest_h3 = 35;
+
 const blockLineWidth = 2;
 const blockLineColor = "brown";
 const nearPortDistance = 10;
@@ -18,8 +23,8 @@ export enum PortType {
     left,
     right,
 
-    leftPort,
-    rightPort,
+    inputPort,
+    outputPort,
 }
 
 export abstract class Block extends UI {
@@ -37,7 +42,44 @@ export abstract class Block extends UI {
         this.padding = [5, 5, 5, 5];
     }
 
-    abstract copy() : Block;
+    copy() : Block {
+        let block : Block;
+
+        switch(this.constructor.name){
+        case StartBlock.name: block = new StartBlock({}); break;
+        case IfBlock.name: block = new IfBlock({}); break;
+        case CompareBlock.name: block = new CompareBlock({}); break;
+        case InfiniteLoop.name: block = new InfiniteLoop({}); break;
+        case ActionBlock.name: block = new ActionBlock({}); break;
+        case InputRangeBlock.name: block = new InputRangeBlock({}); break;
+        case ServoMotorBlock.name: block = new ServoMotorBlock({}); break;
+        case SetValueBlock.name: block = new SetValueBlock({}); break;
+        case CameraBlock.name: block = new CameraBlock({}); break;
+        case TTSBlock.name: block = new TTSBlock({}); break;
+        case FaceDetectionBlock.name: block = new FaceDetectionBlock({}); break;
+        case JoyStickBlock.name: block = new JoyStickBlock({}); break;
+        case UltrasonicDistanceSensorBlock.name: block = new UltrasonicDistanceSensorBlock({}); break;
+        default:
+            throw new MyError();
+
+        }
+
+        return this.copyBlock(block);
+    }
+
+    copyMember(dst : any, names : string[]){
+        const map = new Map<string, any>();
+
+        for(const name of names){
+            map.set(name, dst[name]);
+        }
+
+        Object.assign(dst, this);
+
+        for(const name of names){
+            dst[name] = map.get(name);
+        }
+    }
 
     copyBlock(dst : Block) : Block {
         const idx = dst.idx;
@@ -127,22 +169,20 @@ export abstract class Block extends UI {
     }
 
     drawNotch(cx : number, cy : number, type : PortType){
-        const radius = 10;        
-
         switch(type){
         case PortType.bottom:
-            this.ctx.arc(cx, cy, radius, Math.PI, 0, true);
+            this.ctx.arc(cx, cy, notchRadius, Math.PI, 0, true);
             break;
         case PortType.top:
-            this.ctx.arc(cx, cy, radius, 0, Math.PI, false);
+            this.ctx.arc(cx, cy, notchRadius, 0, Math.PI, false);
             break;
 
         case PortType.right:
-            this.ctx.arc(cx, cy, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
+            this.ctx.arc(cx, cy, notchRadius, 0.5 * Math.PI, 1.5 * Math.PI, true);
             break;
 
         case PortType.left:
-            this.ctx.arc(cx, cy, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
+            this.ctx.arc(cx, cy, notchRadius, 1.5 * Math.PI, 0.5 * Math.PI, false);
             break;
 
         default:
@@ -196,6 +236,44 @@ export abstract class Block extends UI {
         }
     }
 
+    drawIOPorts(x1 : number, x2 : number, y1 : number, y2 : number){
+        const input_ports  = this.ports.filter(x => x.type == PortType.inputPort);
+        const output_ports = this.ports.filter(x => x.type == PortType.outputPort);
+
+        for(const ports of [ input_ports, output_ports]){
+            const y = (ports == input_ports ? y1 + notchRadius: y2 - notchRadius);
+            for(const [i, port] of ports.entries()){
+                const p = (i + 1) / (ports.length + 1);
+                const x = x1 * (1 - p) + x2 * p;
+                port.drawPort(this.ctx, x, y);
+            }
+        }
+    }
+
+    getLeftTop() : [number, number] {
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        return [x1, y1];
+    }
+
+    drawDataflowBlock(){
+        const [x1, y1] = this.getLeftTop();
+
+        const x2 = x1 + this.minSize!.x;
+        const y2 = y1 + 50;
+
+        this.drawOutline([
+            [x1, y1, null],
+            [x1, y2, null],
+            [x2, y2, null],
+            [x2, y1, null],
+        ]);
+
+        this.drawIOPorts(x1, x2, y1, y2);
+    }
+
     canConnectNearPortPair(block : Block) : Port[] {
         for(const port1 of this.ports){
             for(const port2 of block.ports){
@@ -215,17 +293,13 @@ export abstract class Block extends UI {
 
 
 export class StartBlock extends Block {
-    constructor(){
-        super({});
+    constructor(data : Attr){
+        super(data);
         this.ports = [ new Port(this, PortType.bottom) ];
     }
 
     setMinSize() : void {
         this.minSize = new Vec2(150, 50);
-    }
-
-    copy() : Block {
-        return this.copyBlock(new StartBlock());
     }
 
     draw(){
@@ -235,7 +309,7 @@ export class StartBlock extends Block {
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
+        const y2 = y1 + this.minSize!.y - notchRadius;
 
         this.drawOutline([
             [x1, y1, null],
@@ -254,44 +328,18 @@ export class StartBlock extends Block {
         this.ctx.strokeText("Start", x, y);
 
     }
-
-    async click(){
-        await sendData({
-            command : "init",
-            name: "hamada",
-            age: 66
-        });
-
-        try {
-            const url = `${urlOrigin}/get_data`;
-            msg(`fetch:[${url}]`);
-            const response = await fetch(url); // Default method is GET
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json(); // Parse the JSON response from Flask
-            const json_str = JSON.stringify(data, null, 2); // Pretty print JSON
-            msg(`start click name:[${data["product_name"]}] price:[${data["price"]}] json:[${json_str}]`);
-        } catch (error: any) {
-            msg(`start click error: ${error.message || error}`);
-        }
-
-
-    }
 }
 
 
 
 export class IfBlock extends Block {
-    constructor(){
-        super({});
+    constructor(data : Attr){
+        super(data);
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.right), new Port(this, PortType.bottom), new Port(this, PortType.bottom) ];
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 100);
+        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
 
         const true_block = this.trueBlock();
         if(true_block != undefined){
@@ -299,10 +347,6 @@ export class IfBlock extends Block {
 
             this.minSize.y += true_block.totalHeight();
         }
-    }
-
-    copy() : Block {
-        return this.copyBlock(new IfBlock());
     }
 
     trueBlock() : Block | undefined {
@@ -321,9 +365,9 @@ export class IfBlock extends Block {
         const x3 = x2 + 35;
         const x4 = x1 + this.minSize!.x;
 
-        const y2 = y1 + 35;
-        const y3 = y2 + 30 + true_block_height;
-        const y4 = y3 + 35;
+        const y2 = y1 + nest_h1;
+        const y3 = y2 + nest_h2 + true_block_height;
+        const y4 = y3 + nest_h3 - notchRadius;
 
 
         this.drawOutline([
@@ -349,17 +393,13 @@ export class IfBlock extends Block {
 }
 
 export class ConditionBlock extends Block {
-    constructor(){
-        super({});
+    constructor(data : Attr){
+        super(data);
         this.ports = [ new Port(this, PortType.left) ];
     }
 
     setMinSize() : void {
         this.minSize = new Vec2(150, 50);
-    }
-
-    copy() : Block {
-        return this.copyBlock(new ConditionBlock());
     }
 
     draw(){
@@ -382,9 +422,12 @@ export class ConditionBlock extends Block {
     }
 }
 
+export class CompareBlock extends ConditionBlock {    
+}
+
 export class InfiniteLoop extends Block {
-    constructor(){
-        super({});
+    constructor(data : Attr){
+        super(data);
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
     }
 
@@ -393,7 +436,7 @@ export class InfiniteLoop extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 100);
+        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
 
         const loop_block = this.loopBlock();
         if(loop_block != undefined){
@@ -401,10 +444,6 @@ export class InfiniteLoop extends Block {
 
             this.minSize.y += loop_block.totalHeight();
         }
-    }
-
-    copy() : Block {
-        return this.copyBlock(new InfiniteLoop());
     }
 
     draw(){
@@ -419,9 +458,9 @@ export class InfiniteLoop extends Block {
         const x3 = x2 + 35;
         const x4 = x1 + this.minSize!.x;
 
-        const y2 = y1 + 35;
-        const y3 = y2 + 30 + loop_block_height;
-        const y4 = y3 + 35;
+        const y2 = y1 + nest_h1;
+        const y3 = y2 + nest_h2 + loop_block_height;
+        const y4 = y3 + nest_h3;
 
 
         this.drawOutline([
@@ -445,17 +484,13 @@ export class InfiniteLoop extends Block {
 }
 
 export class ActionBlock extends Block {
-    constructor(){
-        super({});
+    constructor(data : Attr){
+        super(data);
         this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
     }
 
     setMinSize() : void {
         this.minSize = new Vec2(150, 50);
-    }
-
-    copy() : Block {
-        return this.copyBlock(new ActionBlock());
     }
 
     draw(){
@@ -465,7 +500,8 @@ export class ActionBlock extends Block {
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
+
+        const y2 = y1 + this.minSize!.y - notchRadius;
 
         this.drawOutline([
             [x1, y1, null],
@@ -491,20 +527,6 @@ export abstract class InputBlock extends Block {
         this.input.style.position = "absolute";
 
         document.body.appendChild(this.input);
-    }
-
-    copyMember(dst : any, names : string[]){
-        const map = new Map<string, any>();
-
-        for(const name of names){
-            map.set(name, dst[name]);
-        }
-
-        Object.assign(dst, this);
-
-        for(const name of names){
-            dst[name] = map.get(name);
-        }
     }
 
     copyBlock(dst : InputBlock) : InputBlock {
@@ -588,7 +610,7 @@ export class InputRangeBlock extends InputBlock {
             msg(`max : [${this.input.max}]`);
         });
 
-        this.ports = [ new Port(this, PortType.rightPort) ];
+        this.ports = [ new Port(this, PortType.outputPort) ];
     }
 
     setMinSize() : void {
@@ -601,10 +623,6 @@ export class InputRangeBlock extends InputBlock {
         dst.ports = this.ports.map(x => x.copyPort(dst));
 
         return dst;
-    }
-
-    copy() : Block {
-        return this.copyBlock(new InputRangeBlock({}));
     }
 
     setPosition(position : Vec2) : void {
@@ -630,21 +648,7 @@ export class InputRangeBlock extends InputBlock {
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
-
-        this.drawOutline([
-            [x1, y1, null],
-            [x1, y2, null],
-            [x2, y2, null],
-            [x2, y1, null],
-        ]);
-
-        this.ports[0].drawPort(this.ctx, x2, 0.5 * (y1 + y2));
+        this.drawDataflowBlock();
     }
 }
 
@@ -662,15 +666,11 @@ export class ServoMotorBlock extends InputBlock {
             msg(`change : [${this.input.value}]`);
         });
 
-        this.ports = [ new Port(this, PortType.leftPort) ];
+        this.ports = [ new Port(this, PortType.inputPort) ];
     }
 
     setMinSize() : void {
         this.minSize = new Vec2(200, 50);
-    }
-
-    copy() : Block {
-        return this.copyBlock(new ServoMotorBlock({}));
     }
 
     setPosition(position : Vec2) : void {
@@ -682,22 +682,8 @@ export class ServoMotorBlock extends InputBlock {
         this.input.style.top  = `${y1}px`;
     }
 
-    draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
-
-        this.drawOutline([
-            [x1, y1, null],
-            [x1, y2, null],
-            [x2, y2, null],
-            [x2, y1, null],
-        ]);
-
-        this.ports[0].drawPort(this.ctx, x1, 0.5 * (y1 + y2));
+    draw(): void {
+        this.drawDataflowBlock();
     }
 
     async valueChanged(value : number){
@@ -727,17 +713,13 @@ export class SetValueBlock extends InputBlock {
 
         this.ports = [ 
             new Port(this, PortType.top),
-            new Port(this, PortType.rightPort),
+            new Port(this, PortType.outputPort),
             new Port(this, PortType.bottom),
         ];
     }
 
     setMinSize() : void {
         this.minSize = new Vec2(200, 50);
-    }
-
-    copy() : Block {
-        return this.copyBlock(new SetValueBlock({}));
     }
 
     setPosition(position : Vec2) : void {
@@ -752,11 +734,12 @@ export class SetValueBlock extends InputBlock {
     draw(){
         const [pos, size] = this.drawBox();
         const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
+
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const y2 = y1 + this.minSize!.y - notchRadius;
 
         this.drawOutline([
             [x1, y1, null],
@@ -769,12 +752,124 @@ export class SetValueBlock extends InputBlock {
             [x2, y1, this.ports[0]]
         ])
 
-        this.ports[1].drawPort(this.ctx, x3, 0.5 * (y1 + y2));
+        this.drawIOPorts(x1, x3, y1, y2);
+    }
+}
+
+
+export class CameraBlock extends Block {
+    img : HTMLImageElement;
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ new Port(this, PortType.outputPort) ];
+
+        this.img = document.createElement("img");
+        this.img.style.position = "absolute";
+        this.img.src = "static/lib/diagram/img/camera.png";
+        this.img.width = 64;
+        this.img.height = 64;
+
+        document.body.appendChild(this.img);
+    }
+
+    copyBlock(dst : InputBlock) : InputBlock {
+        this.copyMember(dst, [ "idx", "img" ]);
+
+        dst.ports = this.ports.map(x => x.copyPort(dst));
+
+        return dst;
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
+    }
+
+    setPosition(position : Vec2) : void {
+        super.setPosition(position);
+
+        const [pos, size] = this.drawBox();
+
+        // const offset = this.borderWidth + blockLineWidth + 2 * Port.radius;
+        const offset = 2;
+        const x1 = pos.x + offset
+        const y1 = pos.y + offset
+
+        this.img.style.left = `${x1}px`;
+        this.img.style.top  = `${y1}px`;
+    }
+
+    draw(){
+        this.drawDataflowBlock();
+    }
+}
+
+export class TTSBlock extends InputBlock {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ ];
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
+    }
+}
+
+export class FaceDetectionBlock extends Block {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ new Port(this, PortType.inputPort), new Port(this, PortType.outputPort), new Port(this, PortType.outputPort) ];
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
+    }
+
+    getCamera() : CameraBlock | undefined {
+        if(this.ports[0].sources.length != 0){
+            const camera = this.ports[0].sources.map(x => x.parent).find(x => x instanceof CameraBlock);
+            return camera;
+        }
+
+        return undefined;
+    }
+
+    draw(){
+        this.drawDataflowBlock();
+
+        const camera = this.getCamera();
+        if(camera != undefined){
+            const [x1, y1] = this.getLeftTop();
+
+            const img = camera.img;
+            this.ctx.drawImage(img, x1, y1, img.width, img.height);
+        }
+    }
+}
+
+export class JoyStickBlock extends Block {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ ];
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
+    }
+}
+
+export class UltrasonicDistanceSensorBlock extends Block {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ ];
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, 50);
     }
 }
 
 
 export function $if_block() : IfBlock {
-    return new IfBlock();
+    return new IfBlock({});
 }
 }

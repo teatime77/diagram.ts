@@ -86,6 +86,7 @@ export class Canvas {
         const pos = this.getPositionInCanvas(ev);
         const target = this.getUIFromPosition(this.root, pos);
         if(target != undefined){
+            msg(`down:${target.constructor.name}`);
             this.downPos   = pos;
             this.movePos   = pos;
 
@@ -205,13 +206,6 @@ export class Canvas {
                 else{
                     this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
                 }
-            }
-        }
-        else if(this.draggedUI instanceof Block){
-            msg("click");
-
-            if(this.draggedUI instanceof StartBlock){
-                await this.draggedUI.click();
             }
         }
         else if(this.draggedUI instanceof Button){

@@ -7,3 +7,4 @@ public/lib/webgpu
 public/lib/diagram
 ts/@types
 copy.sh
+public/static/lib/diagram/img/camera.png

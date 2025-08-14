@@ -110,11 +110,11 @@ function loadJson(objs:any[]){
 
         msg(`block:[${obj.typeName}]`);
         switch(obj.typeName){
-        case "StartBlock"       : block = new StartBlock();         break;
+        case "StartBlock"       : block = new StartBlock({});       break;
         case "IfBlock"          : block = $if_block();              break;
-        case "InfiniteLoop"     : block = new InfiniteLoop();       break;
-        case "ConditionBlock"   : block = new ConditionBlock();     break;
-        case "ActionBlock"      : block = new ActionBlock();        break;
+        case "InfiniteLoop"     : block = new InfiniteLoop({});     break;
+        case "ConditionBlock"   : block = new ConditionBlock({});   break;
+        case "ActionBlock"      : block = new ActionBlock({});      break;
         case "InputRangeBlock"  : block = new InputRangeBlock({});  break;
         case "ServoMotorBlock"  : block = new ServoMotorBlock({});  break;
         case "SetValueBlock"    : block = new SetValueBlock({});    break;

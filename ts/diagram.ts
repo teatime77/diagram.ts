@@ -27,6 +27,7 @@ export class Port {
     idx : number = 0;
     parent : Block;
     destinations : Port[]  = [];
+    sources : Port[]  = [];
     type : PortType;
     pipes : Pipe[] = [];
     position : Vec2 = Vec2.zero();
@@ -64,20 +65,8 @@ export class Port {
     drawPort(ctx : CanvasRenderingContext2D, cx : number, cy : number) : void {       
         ctx.beginPath();
 
-        switch(this.type){
-        case PortType.leftPort:
-            this.position.x = cx + Port.radius;
-            this.position.y = cy;
-            break;
-
-        case PortType.rightPort:
-            this.position.x = cx - Port.radius;
-            this.position.y = cy;
-            break;
-
-        default:
-            throw new MyError();
-        }
+        this.position.x = cx;
+        this.position.y = cy;
 
         ctx.arc(this.position.x, this.position.y, Port.radius, 0, 2 * Math.PI);
 
@@ -93,17 +82,33 @@ export class Port {
         const pairs = [
             [ PortType.bottom, PortType.top],
             [ PortType.top , PortType.bottom],
-            [ PortType.left , PortType.right],
-            [ PortType.right   , PortType.left]
+            // [ PortType.left , PortType.right],
+            // [ PortType.right   , PortType.left],
+
+            [ PortType.inputPort, PortType.outputPort],
+            [ PortType.outputPort, PortType.inputPort]
         ];
 
         return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
     }
 
-    connect(dst : Port) : void {   
-        assert(this.type == PortType.bottom && dst.type == PortType.top);
-        append(this.destinations, dst);
-        msg(`connect port:${this.idx}=>${dst.idx}`);
+    connect(port : Port) : void {   
+        assert(this.canConnect(port));
+
+        let src : Port;
+        let dst : Port;
+
+        if(this.type == PortType.bottom || this.type == PortType.outputPort){
+            [src, dst] = [this, port];
+        }
+        else{
+            [src, dst] = [port, this];
+        }
+
+        append(src.destinations, dst);
+        append(dst.sources, src);
+
+        msg(`connect port:${this.idx}=>${port.idx}`);
     }
 
     async valueChanged(value : number){
@@ -182,7 +187,12 @@ export class Main {
                         }
                     })
                     ,
-                    $filler({})
+                    $button({
+                        text : "start",
+                        click : async ()=>{
+                            await startProgram();
+                        }
+                    })
                     ,
                     $filler({})
                 ]
@@ -197,33 +207,25 @@ export class Main {
                                 text : "button"
                             })
                             ,
-                            $label({
-                                text : "push"
-                            })
-                            ,
-                            $label({
-                                text : "camera"
-                            })
-                            ,
-                            new StartBlock()
+                            new StartBlock({})
                             ,
                             $if_block()
                             ,
-                            new InfiniteLoop()
+                            new InfiniteLoop({})
                             ,
-                            new ConditionBlock()
+                            new CompareBlock({})
                             ,
-                            new ActionBlock()
+                            new ActionBlock({})
                             ,
                             new InputRangeBlock({})
                             ,
                             new ServoMotorBlock({})
                             ,                            
                             new SetValueBlock({})
-                            ,                            
-                            $label({
-                                text : "video"
-                            })
+                            ,
+                            new CameraBlock({})
+                            ,
+                            new FaceDetectionBlock({})
                         ]
                     })
                     ,
@@ -249,6 +251,29 @@ export class Main {
 
 }
 
+export async function startProgram(){
+    await sendData({
+        command : "init",
+        name: "hamada",
+        age: 66
+    });
+
+    try {
+        const url = `${urlOrigin}/get_data`;
+        msg(`fetch:[${url}]`);
+        const response = await fetch(url); // Default method is GET
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json(); // Parse the JSON response from Flask
+        const json_str = JSON.stringify(data, null, 2); // Pretty print JSON
+        msg(`start click name:[${data["product_name"]}] price:[${data["price"]}] json:[${json_str}]`);
+    } catch (error: any) {
+        msg(`start click error: ${error.message || error}`);
+    }
+}
 
 export async function asyncBodyOnLoad(){
     msg("loaded");
