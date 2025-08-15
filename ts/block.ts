@@ -16,6 +16,8 @@ const nearPortDistance = 10;
 const rangeWidth  = 150;
 const numberWidth = 45;
 
+export let cameraImg : HTMLImageElement;
+
 export enum PortType {
     unknown,
     bottom,
@@ -262,7 +264,7 @@ export abstract class Block extends UI {
         const [x1, y1] = this.getLeftTop();
 
         const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
+        const y2 = y1 + this.minSize!.y;
 
         this.drawOutline([
             [x1, y1, null],
@@ -758,18 +760,10 @@ export class SetValueBlock extends InputBlock {
 
 
 export class CameraBlock extends Block {
-    img : HTMLImageElement;
     constructor(data : Attr){
         super(data);
         this.ports = [ new Port(this, PortType.outputPort) ];
 
-        this.img = document.createElement("img");
-        this.img.style.position = "absolute";
-        this.img.src = "static/lib/diagram/img/camera.png";
-        this.img.width = 64;
-        this.img.height = 64;
-
-        document.body.appendChild(this.img);
     }
 
     copyBlock(dst : InputBlock) : InputBlock {
@@ -781,25 +775,17 @@ export class CameraBlock extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
+        this.minSize = new Vec2(320, 240);
     }
 
-    setPosition(position : Vec2) : void {
-        super.setPosition(position);
-
-        const [pos, size] = this.drawBox();
-
-        // const offset = this.borderWidth + blockLineWidth + 2 * Port.radius;
-        const offset = 2;
-        const x1 = pos.x + offset
-        const y1 = pos.y + offset
-
-        this.img.style.left = `${x1}px`;
-        this.img.style.top  = `${y1}px`;
-    }
 
     draw(){
         this.drawDataflowBlock();
+
+        const x1 = this.position.x;
+        const y1 = this.position.y;
+        const img = cameraImg;
+        this.ctx.drawImage(img, x1, y1, img.width, img.height);
     }
 }
 
@@ -840,7 +826,7 @@ export class FaceDetectionBlock extends Block {
         if(camera != undefined){
             const [x1, y1] = this.getLeftTop();
 
-            const img = camera.img;
+            const img = cameraImg;
             this.ctx.drawImage(img, x1, y1, img.width, img.height);
         }
     }

@@ -279,7 +279,7 @@ function updateCameraImage(image_file_name : string){
     const blocks = Main.one.editor.blocks;
     const cameras = blocks.filter(x => x instanceof CameraBlock);
     for(const camera of cameras){
-        camera.img.src = `static/lib/diagram/img/${image_file_name}`;
+        cameraImg.src = `static/lib/diagram/img/${image_file_name}`;
     }
 }
 
@@ -305,7 +305,7 @@ export async function asyncBodyOnLoad(){
     [ urlOrigin, pathname, ] = i18n_ts.parseURL();
     msg(`origin:[${urlOrigin}] path:[${pathname}]`);
 
-
+    cameraImg = document.getElementById("camera-img") as HTMLImageElement;
     main = new Main();
 
     await periodicTask();
