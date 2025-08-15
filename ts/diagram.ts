@@ -275,6 +275,30 @@ export async function startProgram(){
     }
 }
 
+function updateCameraImage(image_file_name : string){
+    const blocks = Main.one.editor.blocks;
+    const cameras = blocks.filter(x => x instanceof CameraBlock);
+    for(const camera of cameras){
+        camera.img.src = `static/lib/diagram/img/${image_file_name}`;
+    }
+}
+
+async function periodicTask() {
+    const result = await sendData({
+        command : "status"
+    });
+    const json_str = JSON.stringify(result, null, 2);
+    msg(`status:${json_str}`);
+
+    const queue = result["queue"]
+    const image_file_name = queue["image_file_name"];
+    if(image_file_name != undefined){
+        updateCameraImage(image_file_name);
+    }
+
+    setTimeout(periodicTask, 1000);
+}
+
 export async function asyncBodyOnLoad(){
     msg("loaded");
     let pathname  : string;
@@ -283,6 +307,8 @@ export async function asyncBodyOnLoad(){
 
 
     main = new Main();
+
+    await periodicTask();
 }
 
 
