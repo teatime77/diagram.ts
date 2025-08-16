@@ -3,7 +3,7 @@
 
 namespace diagram_ts {
 //
-const notchRadius = 10;        
+export const notchRadius = 10;        
 
 const nest_h1 = 35;
 const nest_h2 = 30;
@@ -43,6 +43,10 @@ export abstract class Block extends UI {
             this.backgroundColor = "cornsilk";
         }
         this.padding = [5, 5, 5, 5];
+
+        if(data.inToolbox != undefined){
+            this.inToolbox = data.inToolbox;
+        }
     }
 
     copy() : Block {
@@ -62,15 +66,18 @@ export abstract class Block extends UI {
         case FaceDetectionBlock.name: block = new FaceDetectionBlock({}); break;
         case JoyStickBlock.name: block = new JoyStickBlock({}); break;
         case UltrasonicDistanceSensorBlock.name: block = new UltrasonicDistanceSensorBlock({}); break;
+        case CalcBlock.name: block = new CalcBlock({}); break;
         default:
             throw new MyError();
 
         }
 
         block.position = this.position.copy();
-        block.boxSize  = this.boxSize.copy();
-        block.minSize  = this.minSize!.copy();
         block.ctx      = this.ctx;
+
+        block.setMinSize();
+        block.boxSize = block.minSize!.copy();
+
         return block;
     }
 
@@ -233,19 +240,20 @@ export abstract class Block extends UI {
         }
     }
 
-    getLeftTop() : [number, number] {
+    getCornerPosition() : [number, number, number, number] {
         const [pos, size] = this.drawBox();
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        return [x1, y1];
+        const x2 = x1 + this.minSize!.x;
+        const y2 = y1 + this.minSize!.y;
+
+        return [x1, y1, x2, y2];
     }
 
     drawDataflowBlock(){
-        const [x1, y1] = this.getLeftTop();
+        const [x1, y1, x2, y2] = this.getCornerPosition();
 
-        const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + this.minSize!.y;
 
         this.drawOutline([
             [x1, y1, null],
@@ -518,14 +526,14 @@ export abstract class InputBlock extends Block {
     }
 
     getInputPosition() : [number, number]{
-        const [pos, size] = this.drawBox();
+        const [x1, y1, x2, y2] = this.getCornerPosition();
 
         const rect = this.input.getBoundingClientRect();
 
-        const x1 = pos.x + this.borderWidth + blockLineWidth + 2 * Port.radius;
-        const y1 = pos.y + 0.5 * (size.y - rect.height);
+        const input_x = x1 + 0.5 * ((x2 - x1) - rect.width);
+        const input_y = y1 + 0.5 * ((y2 - y1) - rect.height);
 
-        return [x1, y1];
+        return [input_x, input_y];
     }
 
     setPosition(position : Vec2) : void {
@@ -732,17 +740,31 @@ export class CameraBlock extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(320, 240);
+        if(this.inToolbox){
+
+            this.minSize = new Vec2(320, 50 + 2 * notchRadius);
+        }
+        else{
+
+            this.minSize = new Vec2(320, 240 + 2 * notchRadius);
+        }
     }
 
 
     draw(){
         this.drawDataflowBlock();
 
-        const x1 = this.position.x;
-        const y1 = this.position.y;
+        const [x1, y1, x2, y2] = this.getCornerPosition();
+
         const img = cameraImg;
-        this.ctx.drawImage(img, x1, y1, img.width, img.height);
+
+        const img_height = (y2 - y1) - 2 * notchRadius;
+        const img_width  = img_height * img.width / img.height;
+
+        const img_x = x1 + 0.5 * ((x2 - x1) - img_width);
+        const img_y = y1;
+
+        this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
     }
 }
 
@@ -764,7 +786,14 @@ export class FaceDetectionBlock extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
+        if(this.inToolbox){
+
+            this.minSize = new Vec2(150, 10 + 2 * 2 * notchRadius);
+        }
+        else{
+
+            this.minSize = new Vec2(320, 240 + 2 * 2 * notchRadius);
+        }
     }
 
     getCamera() : CameraBlock | undefined {
@@ -781,10 +810,17 @@ export class FaceDetectionBlock extends Block {
 
         const camera = this.getCamera();
         if(camera != undefined){
-            const [x1, y1] = this.getLeftTop();
+            const [x1, y1, x2, y2] = this.getCornerPosition();
 
             const img = cameraImg;
-            this.ctx.drawImage(img, x1, y1, img.width, img.height);
+
+            const img_height = (y2 - y1) - 2 * 2 * notchRadius;
+            const img_width  = img_height * img.width / img.height;
+
+            const img_x = x1 + 0.5 * ((x2 - x1) - img_width);
+            const img_y = y1 + 2 * notchRadius;
+
+            this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
         }
     }
 }
@@ -810,5 +846,24 @@ export class UltrasonicDistanceSensorBlock extends Block {
         this.minSize = new Vec2(150, 50);
     }
 }
+
+
+export class CalcBlock extends InputBlock {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ new Port(this, PortType.inputPort, "a"), new Port(this, PortType.outputPort, "b") ];
+
+        this.input.type = "text";
+    }
+
+    setMinSize() : void {
+            this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
+    }
+
+    draw(){
+        this.drawDataflowBlock();
+    }
+}
+
 
 }

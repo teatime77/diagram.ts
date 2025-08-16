@@ -25,6 +25,7 @@ export class Port {
     static radius = 10;        
 
     idx : number = 0;
+    name : string;
     parent : Block;
     destinations : Port[]  = [];
     sources : Port[]  = [];
@@ -35,9 +36,10 @@ export class Port {
     prevValue : any | undefined;
     value : any | undefined;
 
-    constructor(parent : Block, type : PortType = PortType.unknown){
+    constructor(parent : Block, type : PortType, name : string = ""){
         this.parent = parent;
         this.type   = type;
+        this.name   = name;
     }
 
     str() : string {
@@ -75,6 +77,17 @@ export class Port {
 
         for(const dst of this.destinations){
             Canvas.one.drawLine(this.position, dst.position, "brown");
+        }
+
+        if(this.name != ""){
+            // ctx.strokeText(this.name, this.position.x, this.position.y);
+            ctx.save();
+            ctx.font = '24px Arial';
+            ctx.fillStyle = "black";
+            const x = this.position.x - 7;
+            const y = this.position.y + 7;
+            ctx.fillText(this.name, x, y);
+            ctx.restore();
         }
     }
 
@@ -226,6 +239,8 @@ export class Main {
                             new CameraBlock({ inToolbox : true })
                             ,
                             new FaceDetectionBlock({ inToolbox : true })
+                            ,
+                            new CalcBlock({ inToolbox : true })
                         ]
                     })
                     ,
