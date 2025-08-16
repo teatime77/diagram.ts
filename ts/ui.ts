@@ -55,6 +55,7 @@ export interface Attr {
     height? : string;
     disabled? : boolean;
     visibility? : string;
+    inToolbox?   : boolean;
 }
 
 export interface TextAttr extends Attr {

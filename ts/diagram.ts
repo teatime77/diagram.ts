@@ -207,25 +207,25 @@ export class Main {
                                 text : "button"
                             })
                             ,
-                            new StartBlock({})
+                            new StartBlock({ inToolbox : true })
                             ,
-                            $if_block()
+                            new IfBlock({ inToolbox : true })
                             ,
-                            new InfiniteLoop({})
+                            new InfiniteLoop({ inToolbox : true })
                             ,
-                            new CompareBlock({})
+                            new CompareBlock({ inToolbox : true })
                             ,
-                            new ActionBlock({})
+                            new ActionBlock({ inToolbox : true })
                             ,
-                            new InputRangeBlock({})
+                            new InputRangeBlock({ inToolbox : true })
                             ,
-                            new ServoMotorBlock({})
+                            new ServoMotorBlock({ inToolbox : true })
                             ,                            
-                            new SetValueBlock({})
+                            new SetValueBlock({ inToolbox : true })
                             ,
-                            new CameraBlock({})
+                            new CameraBlock({ inToolbox : true })
                             ,
-                            new FaceDetectionBlock({})
+                            new FaceDetectionBlock({ inToolbox : true })
                         ]
                     })
                     ,
@@ -308,7 +308,9 @@ export async function asyncBodyOnLoad(){
     cameraImg = document.getElementById("camera-img") as HTMLImageElement;
     main = new Main();
 
-    await periodicTask();
+    if( urlOrigin != "http://127.0.0.1:5500"){
+        await periodicTask();
+    }
 }
 
 

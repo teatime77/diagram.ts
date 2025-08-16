@@ -111,7 +111,7 @@ function loadJson(objs:any[]){
         msg(`block:[${obj.typeName}]`);
         switch(obj.typeName){
         case "StartBlock"       : block = new StartBlock({});       break;
-        case "IfBlock"          : block = $if_block();              break;
+        case "IfBlock"          : block = new IfBlock({});          break;
         case "InfiniteLoop"     : block = new InfiniteLoop({});     break;
         case "ConditionBlock"   : block = new ConditionBlock({});   break;
         case "ActionBlock"      : block = new ActionBlock({});      break;

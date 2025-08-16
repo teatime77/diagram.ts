@@ -35,6 +35,7 @@ export abstract class Block extends UI {
     outlineColor : string = "green";
     notchBottom : boolean = true;
     notchRight  : boolean = true;
+    inToolbox   : boolean = false;
 
     constructor(data : Attr){
         super(data);
@@ -66,31 +67,11 @@ export abstract class Block extends UI {
 
         }
 
-        return this.copyBlock(block);
-    }
-
-    copyMember(dst : any, names : string[]){
-        const map = new Map<string, any>();
-
-        for(const name of names){
-            map.set(name, dst[name]);
-        }
-
-        Object.assign(dst, this);
-
-        for(const name of names){
-            dst[name] = map.get(name);
-        }
-    }
-
-    copyBlock(dst : Block) : Block {
-        const idx = dst.idx;
-        Object.assign(dst, this);
-        dst.idx = idx;
-
-        dst.ports = this.ports.map(x => x.copyPort(dst));
-
-        return dst;
+        block.position = this.position.copy();
+        block.boxSize  = this.boxSize.copy();
+        block.minSize  = this.minSize!.copy();
+        block.ctx      = this.ctx;
+        return block;
     }
 
     makeObj() : any{
@@ -531,14 +512,6 @@ export abstract class InputBlock extends Block {
         document.body.appendChild(this.input);
     }
 
-    copyBlock(dst : InputBlock) : InputBlock {
-        this.copyMember(dst, [ "idx", "input" ]);
-
-        dst.ports = this.ports.map(x => x.copyPort(dst));
-
-        return dst;
-    }
-
     copyInput(dst : InputBlock){
         dst.input = document.createElement("input");
         dst
@@ -617,14 +590,6 @@ export class InputRangeBlock extends InputBlock {
 
     setMinSize() : void {
         this.minSize = new Vec2(200, 50);
-    }
-
-    copyBlock(dst : InputBlock) : InputBlock {
-        this.copyMember(dst, [ "idx", "input", "minInput", "maxInput" ]);
-
-        dst.ports = this.ports.map(x => x.copyPort(dst));
-
-        return dst;
     }
 
     setPosition(position : Vec2) : void {
@@ -766,14 +731,6 @@ export class CameraBlock extends Block {
 
     }
 
-    copyBlock(dst : InputBlock) : InputBlock {
-        this.copyMember(dst, [ "idx", "img" ]);
-
-        dst.ports = this.ports.map(x => x.copyPort(dst));
-
-        return dst;
-    }
-
     setMinSize() : void {
         this.minSize = new Vec2(320, 240);
     }
@@ -854,8 +811,4 @@ export class UltrasonicDistanceSensorBlock extends Block {
     }
 }
 
-
-export function $if_block() : IfBlock {
-    return new IfBlock({});
-}
 }
