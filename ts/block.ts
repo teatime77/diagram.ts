@@ -51,27 +51,7 @@ export abstract class Block extends UI {
     }
 
     copy() : Block {
-        let block : Block;
-
-        switch(this.constructor.name){
-        case StartBlock.name: block = new StartBlock({}); break;
-        case IfBlock.name: block = new IfBlock({}); break;
-        case CompareBlock.name: block = new CompareBlock({}); break;
-        case InfiniteLoop.name: block = new InfiniteLoop({}); break;
-        case ActionBlock.name: block = new ActionBlock({}); break;
-        case InputRangeBlock.name: block = new InputRangeBlock({}); break;
-        case ServoMotorBlock.name: block = new ServoMotorBlock({}); break;
-        case SetValueBlock.name: block = new SetValueBlock({}); break;
-        case CameraBlock.name: block = new CameraBlock({}); break;
-        case TTSBlock.name: block = new TTSBlock({}); break;
-        case FaceDetectionBlock.name: block = new FaceDetectionBlock({}); break;
-        case JoyStickBlock.name: block = new JoyStickBlock({}); break;
-        case UltrasonicDistanceSensorBlock.name: block = new UltrasonicDistanceSensorBlock({}); break;
-        case CalcBlock.name: block = new CalcBlock({}); break;
-        default:
-            throw new MyError();
-
-        }
+        const block = makeBlockByTypeName(this.constructor.name);
 
         block.position = this.position.copy();
         block.ctx      = this.ctx;
@@ -90,6 +70,9 @@ export abstract class Block extends UI {
             y : this.position.y,
             ports : this.ports.map(x => x.makeObj())
         };
+    }
+
+    loadObj(obj : any ){        
     }
 
     abstract setMinSize() : void;
@@ -645,6 +628,19 @@ export class ServoMotorBlock extends InputBlock {
         this.ports = [ new Port(this, PortType.inputPort) ];
     }
 
+    makeObj() : any {
+        let obj = Object.assign(super.makeObj(), {
+            channel : parseInt(this.input.value)
+        });
+
+        return obj;
+    }
+
+    loadObj(obj : any ){        
+        super.loadObj(obj);
+        this.input.value = `${obj.channel}`;
+    }
+
     setMinSize() : void {
         this.minSize = new Vec2(200, 50);
     }
@@ -904,6 +900,19 @@ export class CalcBlock extends InputBlock {
         this.input.type = "text";
     }
 
+    makeObj() : any {
+        let obj = Object.assign(super.makeObj(), {
+            text : this.input.value
+        });
+
+        return obj;
+    }
+
+    loadObj(obj : any ){        
+        super.loadObj(obj);
+        this.input.value = obj.text;
+    }
+
     setMinSize() : void {
             this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
@@ -913,5 +922,25 @@ export class CalcBlock extends InputBlock {
     }
 }
 
+export function makeBlockByTypeName(typeName : string) : Block {
+    switch(typeName){
+    case StartBlock.name:                    return new StartBlock({});
+    case IfBlock.name:                       return new IfBlock({});
+    case CompareBlock.name:                  return new CompareBlock({});
+    case InfiniteLoop.name:                  return new InfiniteLoop({});
+    case ActionBlock.name:                   return new ActionBlock({});
+    case InputRangeBlock.name:               return new InputRangeBlock({});
+    case ServoMotorBlock.name:               return new ServoMotorBlock({});
+    case SetValueBlock.name:                 return new SetValueBlock({});
+    case CameraBlock.name:                   return new CameraBlock({});
+    case TTSBlock.name:                      return new TTSBlock({});
+    case FaceDetectionBlock.name:            return new FaceDetectionBlock({});
+    case JoyStickBlock.name:                 return new JoyStickBlock({});
+    case UltrasonicDistanceSensorBlock.name: return new UltrasonicDistanceSensorBlock({});
+    case CalcBlock.name:                     return new CalcBlock({});
+    default:
+        throw new MyError();
+    }
+}
 
 }

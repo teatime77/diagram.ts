@@ -106,25 +106,15 @@ function loadJson(objs:any[]){
     const port_map = new Map<number, Port>();
 
     for(const obj of objs){
-        let block : Block;
-
         msg(`block:[${obj.typeName}]`);
-        switch(obj.typeName){
-        case "StartBlock"       : block = new StartBlock({});       break;
-        case "IfBlock"          : block = new IfBlock({});          break;
-        case "InfiniteLoop"     : block = new InfiniteLoop({});     break;
-        case "ConditionBlock"   : block = new ConditionBlock({});   break;
-        case "ActionBlock"      : block = new ActionBlock({});      break;
-        case "InputRangeBlock"  : block = new InputRangeBlock({});  break;
-        case "ServoMotorBlock"  : block = new ServoMotorBlock({});  break;
-        case "SetValueBlock"    : block = new SetValueBlock({});    break;
-        default: throw new MyError();
-        }
+        const block = makeBlockByTypeName(obj.typeName);
+        block.loadObj(obj);
 
         block.idx        = obj.idx;
         block.position.x = obj.x;
         block.position.y = obj.y;
         block.setMinSize();
+        block.boxSize = block.minSize!.copy();
 
         block_map.set(block.idx, block);
 
@@ -157,6 +147,8 @@ function loadJson(objs:any[]){
     const canvas = Main.one.canvas;
     setContext2D(canvas.ctx, canvas.root);
 
+    canvas.layoutRoot();
+    // canvas.repaint();
     canvas.requestUpdateCanvas();
 }
 }
