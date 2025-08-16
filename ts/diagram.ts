@@ -290,11 +290,35 @@ export async function startProgram(){
     }
 }
 
+function fetchImage(image_url : string){
+    const image = new Image();
+    image.width  = 320;
+    image.height = 240;
+
+    // 2. Set the crossOrigin attribute for security and to prevent a tainted canvas
+    image.crossOrigin = 'Anonymous'; 
+    
+    image.src = image_url; 
+
+    // 4. Wait for the image to load
+    image.onload = () => {
+        cameraImg = image;
+    };
+}
+
 function updateCameraImage(image_file_name : string){
     const blocks = Main.one.editor.blocks;
     const cameras = blocks.filter(x => x instanceof CameraBlock);
     for(const camera of cameras){
-        cameraImg.src = `static/lib/diagram/img/${image_file_name}`;
+        const image_url = `static/lib/diagram/img/${image_file_name}`;
+        fetchImage(image_url);
+    }
+}
+
+function updateFaceDetection(face : number[]){
+    const face_detection = Main.one.editor.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
+    if(face_detection != undefined){
+        face_detection.setFace(face);
     }
 }
 
@@ -311,6 +335,14 @@ async function periodicTask() {
         updateCameraImage(image_file_name);
     }
 
+    const face = queue["face"];
+    if(face != undefined){
+        assert(face.length == 4);
+        updateFaceDetection(face);
+    }
+
+    Canvas.one.requestUpdateCanvas();
+
     setTimeout(periodicTask, 1000);
 }
 
@@ -320,7 +352,7 @@ export async function asyncBodyOnLoad(){
     [ urlOrigin, pathname, ] = i18n_ts.parseURL();
     msg(`origin:[${urlOrigin}] path:[${pathname}]`);
 
-    cameraImg = document.getElementById("camera-img") as HTMLImageElement;
+    cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
     main = new Main();
 
     if( urlOrigin != "http://127.0.0.1:5500"){

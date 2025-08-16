@@ -16,6 +16,7 @@ const nearPortDistance = 10;
 const rangeWidth  = 150;
 const numberWidth = 45;
 
+export let cameraIcon : HTMLImageElement;
 export let cameraImg : HTMLImageElement;
 
 export enum PortType {
@@ -756,8 +757,20 @@ export class CameraBlock extends Block {
 
         const [x1, y1, x2, y2] = this.getCornerPosition();
 
-        const img = cameraImg;
+        let img : HTMLImageElement;
 
+        if(this.inToolbox){
+
+            img = cameraIcon;
+        }
+        else{
+
+            if(cameraImg == undefined){
+                return;
+            }
+            img = cameraImg;
+        }
+        
         const img_height = (y2 - y1) - 2 * notchRadius;
         const img_width  = img_height * img.width / img.height;
 
@@ -780,6 +793,8 @@ export class TTSBlock extends InputBlock {
 }
 
 export class FaceDetectionBlock extends Block {
+    face : number[] = [];
+
     constructor(data : Attr){
         super(data);
         this.ports = [ new Port(this, PortType.inputPort), new Port(this, PortType.outputPort), new Port(this, PortType.outputPort) ];
@@ -794,6 +809,10 @@ export class FaceDetectionBlock extends Block {
 
             this.minSize = new Vec2(320, 240 + 2 * 2 * notchRadius);
         }
+    }
+
+    setFace(face : number[]){
+        this.face = face.slice();
     }
 
     getCamera() : CameraBlock | undefined {
@@ -812,6 +831,9 @@ export class FaceDetectionBlock extends Block {
         if(camera != undefined){
             const [x1, y1, x2, y2] = this.getCornerPosition();
 
+            if(cameraImg == undefined){
+                return;
+            }
             const img = cameraImg;
 
             const img_height = (y2 - y1) - 2 * 2 * notchRadius;
@@ -821,6 +843,32 @@ export class FaceDetectionBlock extends Block {
             const img_y = y1 + 2 * notchRadius;
 
             this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
+
+
+            if(this.face.length == 4){
+                this.ctx.save();
+
+                // Set the stroke color to red
+                this.ctx.strokeStyle = 'red';
+
+                // Set the line thickness to 5 pixels
+                this.ctx.lineWidth = 5;
+
+                const [face_x, face_y, face_w, face_h] = this.face;
+
+                const cx = img_x + img_width  / 2;
+                const cy = img_y + img_height / 2;
+
+                const img_face_x = cx + img_width  * face_x / 100;
+                const img_face_y = cy + img_height * face_y / 100;
+                const img_face_w = img_width  * face_w / 100;
+                const img_face_h = img_height * face_h / 100;
+
+                // Draw an outlined rectangle at (200, 50) with a size of 100x75
+                this.ctx.strokeRect(img_face_x, img_face_y, img_face_w, img_face_h);            
+
+                this.ctx.restore();
+            }
         }
     }
 }
