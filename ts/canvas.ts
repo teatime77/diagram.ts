@@ -266,9 +266,9 @@ export class Canvas {
         // msg("repaint");
     }
 
-    drawLine(start : Vec2, end : Vec2, color : string){
+    drawLine(start : Vec2, end : Vec2, color : string, lineWidth : number = 2){
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth   = 2;
+        this.ctx.lineWidth   = lineWidth;
 
         this.ctx.beginPath();
         this.ctx.moveTo(start.x, start.y);

@@ -17,6 +17,7 @@ const rangeWidth  = 150;
 const numberWidth = 45;
 
 export let cameraIcon : HTMLImageElement;
+export let motorIcon  : HTMLImageElement;
 export let cameraImg : HTMLImageElement;
 
 export enum PortType {
@@ -100,6 +101,28 @@ export abstract class Block extends UI {
 
             return next_port.parent;
         }
+    }
+
+    outputPorts() : Port[] {
+        return this.ports.filter(x => x.type == PortType.outputPort);
+    }
+
+    nextDataflowBlocks() : Block[] {
+        const blocks : Block[] = [];
+
+        const output_ports = this.outputPorts();
+        for(const port of output_ports){
+            for(const dst of port.destinations){
+                blocks.push(dst.parent);
+            }
+        }
+
+        return blocks;
+    }
+
+    propergateCalc(){
+        const next_dataflow_blocks = this.nextDataflowBlocks();
+        next_dataflow_blocks.forEach(x => x.calc());
     }
 
     totalHeight() : number {
@@ -263,6 +286,10 @@ export abstract class Block extends UI {
 
     async valueChanged(value : number){
         msg(`changed : [${value}] ${this.constructor.name}`);
+    }
+
+    calc(){
+        throw new MyError();
     }
 }
 
@@ -648,14 +675,32 @@ export class ServoMotorBlock extends InputBlock {
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [x1, y1] = this.getInputPosition();
+        const [x1, y1, x2, y2] = this.getCornerPosition();
 
-        this.input.style.left = `${x1}px`;
-        this.input.style.top  = `${y1}px`;
+        const rect = this.input.getBoundingClientRect();
+
+        const input_x = x1 + 10;
+        const input_y = y1 + 0.5 * ((y2 - y1) - rect.height);
+
+        this.input.style.left = `${input_x}px`;
+        this.input.style.top  = `${input_y}px`;
     }
 
     draw(): void {
         this.drawDataflowBlock();
+
+        const [x1, y1, x2, y2] = this.getCornerPosition();
+
+        const img = motorIcon;
+
+        const img_height = (y2 - y1) - 6;
+        const img_width  = img_height * img.width / img.height;
+
+        const img_x = x2 - img_width - 5;
+        const img_y = y1 + 3;
+
+        this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
+
     }
 
     async valueChanged(value : number){
@@ -668,6 +713,12 @@ export class ServoMotorBlock extends InputBlock {
             value   : value
         });
     }
+
+
+    calc(){
+        msg(`motor calc:${this.ports[0].value}`);
+    }
+
 }
 
 
@@ -809,6 +860,13 @@ export class FaceDetectionBlock extends Block {
 
     setFace(face : number[]){
         this.face = face.slice();
+        const [x, y, w, h] = this.face;
+        
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+
+        this.ports[1].setPortValue(cx);
+        this.ports[2].setPortValue(cy);
     }
 
     getCamera() : CameraBlock | undefined {
@@ -891,6 +949,43 @@ export class UltrasonicDistanceSensorBlock extends Block {
     }
 }
 
+function  calcTerm(map : Map<string, number>, term : Term) : number {
+    let value : number;
+
+    if(term instanceof Rational){
+        value = term.fval();
+    }
+    else if(term instanceof ConstNum){
+        value = term.value.fval();
+    }
+    else if(term instanceof RefVar){
+        value = map.get(term.name)!;
+        assert(value != undefined);
+    }
+    else if(term instanceof App){
+        const app = term;
+        const arg_values = app.args.map(x => calcTerm(map, x));
+        if(app.isAdd()){
+            value = sum(arg_values);
+        }
+        else if(app.isMul()){
+            value = arg_values.reduce((acc, cur) => acc * cur, 1);
+        }
+        else if(app.isDiv()){
+            value = arg_values[0] / arg_values[1];
+        }
+        else{
+            throw new MyError("unimplemented");
+        }
+    }
+    else{
+
+        throw new MyError("unimplemented");
+    }
+
+    return term.value.fval() * value;
+}
+
 
 export class CalcBlock extends InputBlock {
     constructor(data : Attr){
@@ -920,6 +1015,32 @@ export class CalcBlock extends InputBlock {
     draw(){
         this.drawDataflowBlock();
     }
+
+    calc(){
+        msg(`start calc: a:${this.ports[0].value}`);
+        const expr = parseMath(this.input.value.trim()) as App;
+        assert(expr.isRootEq());
+        const lhs = expr.args[0] as RefVar;
+        const rhs = expr.args[1];
+
+        const map = new Map<string, number>();
+        for(const port of this.ports){
+            if(port.type == PortType.inputPort){
+                assert(port.name != "" && typeof port.value === 'number' && ! isNaN(port.value));
+                map.set(port.name, port.value);
+            }
+        }
+
+        const rhs_value = calcTerm(map, rhs);
+        const lhs_port = this.ports.find(x => x.name == lhs.name && x.type == PortType.outputPort)!;
+        assert(lhs_port != undefined);
+        lhs_port.setPortValue(rhs_value);
+
+        msg(`end calc: b:${this.ports[1].value}`);
+
+        this.propergateCalc();
+    }
+
 }
 
 export function makeBlockByTypeName(typeName : string) : Block {

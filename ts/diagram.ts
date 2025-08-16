@@ -60,6 +60,11 @@ export class Port {
         };
     }
 
+    setPortValue(value : number){
+        this.value = value;
+        this.destinations.forEach(x => x.setPortValue(value));
+    }
+
     isNear(pos : Vec2){
         return this.position.distance(pos) < Port.radius;
     }
@@ -76,7 +81,7 @@ export class Port {
         ctx.stroke();
 
         for(const dst of this.destinations){
-            Canvas.one.drawLine(this.position, dst.position, "brown");
+            Canvas.one.drawLine(this.position, dst.position, "brown", 4);
         }
 
         if(this.name != ""){
@@ -319,6 +324,8 @@ function updateFaceDetection(face : number[]){
     const face_detection = Main.one.editor.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
     if(face_detection != undefined){
         face_detection.setFace(face);
+
+        face_detection.propergateCalc();
     }
 }
 
@@ -353,6 +360,7 @@ export async function asyncBodyOnLoad(){
     msg(`origin:[${urlOrigin}] path:[${pathname}]`);
 
     cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
+    motorIcon  = document.getElementById("motor-icon") as HTMLImageElement;
     main = new Main();
 
     if( urlOrigin != "http://127.0.0.1:5500"){
