@@ -5,11 +5,11 @@ namespace diagram_ts {
 //
 export const notchRadius = 10;        
 
-const nest_h1 = 35;
-const nest_h2 = 30;
-const nest_h3 = 35;
+export const nest_h1 = 35;
+export const nest_h2 = 30;
+export const nest_h3 = 35;
 
-const blockLineWidth = 2;
+export const blockLineWidth = 2;
 const blockLineColor = "brown";
 const nearPortDistance = 10;
 
@@ -87,22 +87,6 @@ export abstract class Block extends UI {
         this.setPosition(new_position);
     }
 
-    nextBlock() : Block | undefined {
-        const bottom_port = this.ports.find(x => x.type == PortType.bottom);
-        if(bottom_port == undefined){
-            return undefined;
-        }
-        else{
-            if(bottom_port.destinations.length == 0){
-                return undefined;
-            }
-
-            const next_port = bottom_port.destinations[0];
-
-            return next_port.parent;
-        }
-    }
-
     outputPorts() : Port[] {
         return this.ports.filter(x => x.type == PortType.outputPort);
     }
@@ -125,16 +109,6 @@ export abstract class Block extends UI {
         next_dataflow_blocks.forEach(x => x.calc());
     }
 
-    totalHeight() : number {
-        let height = this.minSize!.y;
-
-        for(let block = this.nextBlock(); block != undefined; block = block.nextBlock()){
-            height += block.minSize!.y;
-        }
-
-        return height;
-    }
-
     connectBlock(ports : Port[]){
         let [port1, port2] = ports;
         assert(port1.parent == this);
@@ -152,17 +126,6 @@ export abstract class Block extends UI {
         port1.connect(port2);
 
         msg(`connect block`);
-    }
-
-    innerBlock(port : Port) : Block | undefined {
-        assert(port.type == PortType.bottom);
-
-        if(port.destinations.length == 0){
-            return undefined;
-        }
-        else{
-            return port.destinations[0].parent;
-        }
     }
 
     drawNotch(cx : number, cy : number, type : PortType){
@@ -332,159 +295,6 @@ export class StartBlock extends Block {
     }
 }
 
-
-
-export class IfBlock extends Block {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.right), new Port(this, PortType.bottom), new Port(this, PortType.bottom) ];
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
-
-        const true_block = this.trueBlock();
-        if(true_block != undefined){
-            true_block.setMinSize();
-
-            this.minSize.y += true_block.totalHeight();
-        }
-    }
-
-    trueBlock() : Block | undefined {
-        return this.innerBlock(this.ports[2]);
-    }
-
-    draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const true_block = this.trueBlock();
-        const true_block_height = (true_block == undefined ? 0 : true_block.totalHeight());
-
-        const x2 = x1 + 35;
-        const x3 = x2 + 35;
-        const x4 = x1 + this.minSize!.x;
-
-        const y2 = y1 + nest_h1;
-        const y3 = y2 + nest_h2 + true_block_height;
-        const y4 = y3 + nest_h3 - notchRadius;
-
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, y4, null],
-            [x2, y4, this.ports[3]],
-            [x4, y4, null],
-
-            [x4, y3, null],
-            [x2, y3, null],
-
-            [x2, y2, null],
-            [x3, y2, this.ports[2]],
-            [x4, y2, null],
-
-            [x4, 0.5 * (y1 + y2), this.ports[1]],
-
-            [x4, y1, null],
-            [x2, y1, this.ports[0]]
-        ])
-    }
-}
-
-export class ConditionBlock extends Block {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ new Port(this, PortType.left) ];
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
-    }
-
-    draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + 50;
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, 0.5 * (y1 + y2), this.ports[0]],
-
-            [x1, y2, null],
-            [x2, y2, null],
-            [x2, y1, null],
-        ])
-    }
-}
-
-export class CompareBlock extends ConditionBlock {    
-}
-
-export class InfiniteLoop extends Block {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
-    }
-
-    loopBlock() : Block | undefined {
-        return this.innerBlock(this.ports[1]);
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
-
-        const loop_block = this.loopBlock();
-        if(loop_block != undefined){
-            loop_block.setMinSize();
-
-            this.minSize.y += loop_block.totalHeight();
-        }
-    }
-
-    draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const loop_block = this.loopBlock();
-        const loop_block_height = (loop_block == undefined ? 0 : loop_block.totalHeight());
-
-        const x2 = x1 + 35;
-        const x3 = x2 + 35;
-        const x4 = x1 + this.minSize!.x;
-
-        const y2 = y1 + nest_h1;
-        const y3 = y2 + nest_h2 + loop_block_height;
-        const y4 = y3 + nest_h3;
-
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, y4, null],
-            [x4, y4, null],
-
-            [x4, y3, null],
-            [x2, y3, null],
-
-            [x2, y2, null],
-            [x3, y2, this.ports[1]],
-            [x4, y2, null],
-
-            [x4, y1, null],
-            [x2, y1, this.ports[0]]
-        ])
-    }
-
-}
-
 export class ActionBlock extends Block {
     constructor(data : Attr){
         super(data);
@@ -529,11 +339,6 @@ export abstract class InputBlock extends Block {
         this.input.style.position = "absolute";
 
         document.body.appendChild(this.input);
-    }
-
-    copyInput(dst : InputBlock){
-        dst.input = document.createElement("input");
-        dst
     }
 
     getInputPosition() : [number, number]{
@@ -637,6 +442,7 @@ export class InputRangeBlock extends InputBlock {
         this.drawDataflowBlock();
     }
 }
+
 
 export class ServoMotorBlock extends InputBlock {
     constructor(data : Attr){
@@ -743,15 +549,6 @@ export class SetValueBlock extends InputBlock {
 
     setMinSize() : void {
         this.minSize = new Vec2(200, 50);
-    }
-
-    setPosition(position : Vec2) : void {
-        super.setPosition(position);
-
-        const [x1, y1] = this.getInputPosition();
-
-        this.input.style.left = `${x1}px`;
-        this.input.style.top  = `${y1}px`;
     }
 
     draw(){
@@ -986,15 +783,7 @@ function  calcTerm(map : Map<string, number>, term : Term) : number {
     return term.value.fval() * value;
 }
 
-
-export class CalcBlock extends InputBlock {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ new Port(this, PortType.inputPort, "a"), new Port(this, PortType.outputPort, "b") ];
-
-        this.input.type = "text";
-    }
-
+abstract class InputTextBlock extends InputBlock {
     makeObj() : any {
         let obj = Object.assign(super.makeObj(), {
             text : this.input.value
@@ -1016,13 +805,7 @@ export class CalcBlock extends InputBlock {
         this.drawDataflowBlock();
     }
 
-    calc(){
-        msg(`start calc: a:${this.ports[0].value}`);
-        const expr = parseMath(this.input.value.trim()) as App;
-        assert(expr.isRootEq());
-        const lhs = expr.args[0] as RefVar;
-        const rhs = expr.args[1];
-
+    makeInputValueMap() : Map<string, number> {
         const map = new Map<string, number>();
         for(const port of this.ports){
             if(port.type == PortType.inputPort){
@@ -1030,6 +813,30 @@ export class CalcBlock extends InputBlock {
                 map.set(port.name, port.value);
             }
         }
+
+        return map;
+    }
+}
+
+export class CalcBlock extends InputTextBlock {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ 
+            new Port(this, PortType.inputPort, "a"), 
+            new Port(this, PortType.outputPort, "b") 
+        ];
+
+        this.input.type = "text";
+    }
+
+    calc(){
+        msg(`start calc: a:${this.ports[0].value}`);
+        const expr = parseMath(this.input.value.trim()) as App;
+        assert(expr.isRootEq());
+        const lhs = expr.args[0] as RefVar;
+        const rhs = expr.args[1];
+
+        const map = this.makeInputValueMap();
 
         const rhs_value = calcTerm(map, rhs);
         const lhs_port = this.ports.find(x => x.name == lhs.name && x.type == PortType.outputPort)!;
@@ -1040,9 +847,31 @@ export class CalcBlock extends InputBlock {
 
         this.propergateCalc();
     }
-
 }
 
+export class CompareBlock extends InputTextBlock {    
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ 
+            new Port(this, PortType.inputPort, "a"), 
+            new Port(this, PortType.outputPort) 
+        ];
+
+        this.input.type = "text";
+        this.input.value = "a == a";
+    }
+
+    calc() {
+        msg(`start compare: a:${this.ports[0].value}`);
+        const expr = parseMath(this.input.value.trim()) as App;
+
+        const map = this.makeInputValueMap();
+        const result = calcTerm(map, expr);
+        assert(result == 0 || result == 1);
+
+        this.ports[1].setPortValue(result);
+    }
+}
 export function makeBlockByTypeName(typeName : string) : Block {
     switch(typeName){
     case StartBlock.name:                    return new StartBlock({});
