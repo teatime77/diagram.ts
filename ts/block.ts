@@ -544,11 +544,50 @@ export class ServoMotorBlock extends InputBlock {
 }
 
 
-export class SetValueBlock extends InputBlock {
+abstract class InputTextBlock extends InputBlock {
+    constructor(data : Attr){
+        super(data);
+        this.input.type = "text";
+    }
+
+    makeObj() : any {
+        let obj = Object.assign(super.makeObj(), {
+            text : this.input.value
+        });
+
+        return obj;
+    }
+
+    loadObj(obj : any ){        
+        super.loadObj(obj);
+        this.input.value = obj.text;
+    }
+
+    setMinSize() : void {
+            this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
+    }
+
+    draw(){
+        this.drawDataflowBlock();
+    }
+
+    makeInputValueMap() : Map<string, number> {
+        const map = new Map<string, number>();
+        for(const port of this.ports){
+            if(port.type == PortType.inputPort){
+                assert(port.name != "" && typeof port.value === 'number' && ! isNaN(port.value));
+                map.set(port.name, port.value);
+            }
+        }
+
+        return map;
+    }
+}
+
+export class SetValueBlock extends InputTextBlock {
     constructor(data : Attr){
         super(data);
 
-        this.input.type = "text";
         this.input.style.width = "45px";
         this.input.value = "0";
 
@@ -641,13 +680,15 @@ export class CameraBlock extends Block {
     }
 }
 
-export class TTSBlock extends InputBlock {
+export class TTSBlock extends InputTextBlock {
     constructor(data : Attr){
         super(data);
         this.ports = [ 
             new Port(this, PortType.top), 
             new Port(this, PortType.bottom) 
         ];
+
+        this.input.value = "こんにちは!どうぞよろしく!";
     }
 
     setMinSize() : void {
@@ -657,6 +698,28 @@ export class TTSBlock extends InputBlock {
     draw(): void {
         this.drawActionBlock();
         this.drawIcon(ttsIcon);
+    }
+
+    async run(){
+        const audio = ttsAudio;
+
+        try {
+            msg("start audio play")
+            // Start playing the audio
+            await audio.play();
+
+            // Create a new Promise that resolves when the 'ended' event is triggered
+            await new Promise<void>((resolve) => {
+                audio.addEventListener('ended', () => {
+                    resolve();
+                }, { once: true }); // Use { once: true } to automatically remove the listener after it fires
+            });
+
+            msg("Audio playback has finished.");
+        } catch (error) {
+            // Catch errors that might occur if the browser blocks autoplay
+            console.error("Audio playback failed:", error);
+        }        
     }
 }
 
@@ -818,41 +881,6 @@ function  calcTerm(map : Map<string, number>, term : Term) : number {
     return term.value.fval() * value;
 }
 
-abstract class InputTextBlock extends InputBlock {
-    makeObj() : any {
-        let obj = Object.assign(super.makeObj(), {
-            text : this.input.value
-        });
-
-        return obj;
-    }
-
-    loadObj(obj : any ){        
-        super.loadObj(obj);
-        this.input.value = obj.text;
-    }
-
-    setMinSize() : void {
-            this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
-    }
-
-    draw(){
-        this.drawDataflowBlock();
-    }
-
-    makeInputValueMap() : Map<string, number> {
-        const map = new Map<string, number>();
-        for(const port of this.ports){
-            if(port.type == PortType.inputPort){
-                assert(port.name != "" && typeof port.value === 'number' && ! isNaN(port.value));
-                map.set(port.name, port.value);
-            }
-        }
-
-        return map;
-    }
-}
-
 export class CalcBlock extends InputTextBlock {
     constructor(data : Attr){
         super(data);
@@ -860,8 +888,6 @@ export class CalcBlock extends InputTextBlock {
             new Port(this, PortType.inputPort, "a"), 
             new Port(this, PortType.outputPort, "b") 
         ];
-
-        this.input.type = "text";
     }
 
     calc(){
@@ -892,7 +918,6 @@ export class CompareBlock extends InputTextBlock {
             new Port(this, PortType.outputPort) 
         ];
 
-        this.input.type = "text";
         this.input.value = "a == a";
     }
 

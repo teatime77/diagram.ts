@@ -387,7 +387,10 @@ async function startProcedures() {
     const top_blocks = getTopProcedures();
     for(const block of top_blocks){
         msg(`top proc:${block.constructor.name}`);
+        await block.run();
     }
+
+    msg("procedures complete.")
 }
 
 export async function asyncBodyOnLoad(){
