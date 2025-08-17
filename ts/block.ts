@@ -19,6 +19,10 @@ const numberWidth = 45;
 export let cameraIcon : HTMLImageElement;
 export let motorIcon  : HTMLImageElement;
 export let cameraImg : HTMLImageElement;
+export let distanceSensorIcon : HTMLImageElement;
+export let ttsIcon : HTMLImageElement;
+
+export let ttsAudio  : HTMLAudioElement;
 
 export enum PortType {
     unknown,
@@ -210,6 +214,19 @@ export abstract class Block extends UI {
         }
     }
 
+    drawIcon(img : HTMLImageElement){
+        const [x1, y1, x2, y2] = this.getCornerPosition();
+
+
+        const img_height = (y2 - y1) - 6;
+        const img_width  = img_height * img.width / img.height;
+
+        const img_x = x2 - img_width - 5;
+        const img_y = y1 + 3;
+
+        this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
+    }
+
     getCornerPosition() : [number, number, number, number] {
         const [pos, size] = this.drawBox();
         const x1 = pos.x + this.borderWidth + blockLineWidth;
@@ -233,6 +250,28 @@ export abstract class Block extends UI {
         ]);
 
         this.drawIOPorts(x1, x2, y1, y2);
+    }
+
+    drawActionBlock(){
+        const [pos, size] = this.drawBox();
+        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth + blockLineWidth;
+
+        const x2 = x1 + 35;
+        const x3 = x1 + this.minSize!.x;
+
+        const y2 = y1 + this.minSize!.y - notchRadius;
+
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y2, null],
+            [x2, y2, this.ports[1]],
+            [x3, y2, null],
+
+            [x3, y1, null],
+            [x2, y1, this.ports[0]]
+        ]);
     }
 
     canConnectNearPortPair(block : Block) : Port[] {
@@ -298,7 +337,10 @@ export class StartBlock extends Block {
 export class ActionBlock extends Block {
     constructor(data : Attr){
         super(data);
-        this.ports = [ new Port(this, PortType.top), new Port(this, PortType.bottom) ];
+        this.ports = [ 
+            new Port(this, PortType.top), 
+            new Port(this, PortType.bottom) 
+        ];
     }
 
     setMinSize() : void {
@@ -306,25 +348,7 @@ export class ActionBlock extends Block {
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const x2 = x1 + 35;
-        const x3 = x1 + this.minSize!.x;
-
-        const y2 = y1 + this.minSize!.y - notchRadius;
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, y2, null],
-            [x2, y2, this.ports[1]],
-            [x3, y2, null],
-
-            [x3, y1, null],
-            [x2, y1, this.ports[0]]
-        ])
+        this.drawActionBlock();
     }
 }
 
@@ -494,19 +518,7 @@ export class ServoMotorBlock extends InputBlock {
 
     draw(): void {
         this.drawDataflowBlock();
-
-        const [x1, y1, x2, y2] = this.getCornerPosition();
-
-        const img = motorIcon;
-
-        const img_height = (y2 - y1) - 6;
-        const img_width  = img_height * img.width / img.height;
-
-        const img_x = x2 - img_width - 5;
-        const img_y = y1 + 3;
-
-        this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
-
+        this.drawIcon(motorIcon);
     }
 
     async valueChanged(value : number){
@@ -628,11 +640,19 @@ export class CameraBlock extends Block {
 export class TTSBlock extends InputBlock {
     constructor(data : Attr){
         super(data);
-        this.ports = [ ];
+        this.ports = [ 
+            new Port(this, PortType.top), 
+            new Port(this, PortType.bottom) 
+        ];
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
+        this.minSize = new Vec2(300, 50);
+    }
+
+    draw(): void {
+        this.drawActionBlock();
+        this.drawIcon(ttsIcon);
     }
 }
 
@@ -738,11 +758,22 @@ export class JoyStickBlock extends Block {
 export class UltrasonicDistanceSensorBlock extends Block {
     constructor(data : Attr){
         super(data);
-        this.ports = [ ];
+        this.ports = [ 
+            new Port(this, PortType.outputPort) 
+        ];
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
+        this.minSize = new Vec2(300, 50);
+    }
+
+    setDistance(distance : number){
+        this.ports[0].setPortValue(distance);
+    }
+
+    draw(): void {
+        this.drawDataflowBlock();
+        this.drawIcon(distanceSensorIcon);
     }
 }
 

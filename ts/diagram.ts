@@ -246,6 +246,10 @@ export class Main {
                             new FaceDetectionBlock({ inToolbox : true })
                             ,
                             new CalcBlock({ inToolbox : true })
+                            ,
+                            new UltrasonicDistanceSensorBlock({ inToolbox : true })
+                            ,
+                            new TTSBlock({ inToolbox : true })
                         ]
                     })
                     ,
@@ -329,6 +333,15 @@ function updateFaceDetection(face : number[]){
     }
 }
 
+function updateDistanceSensor(distance : number){
+    const distance_sensor = Main.one.editor.blocks.find(x => x instanceof UltrasonicDistanceSensorBlock) as UltrasonicDistanceSensorBlock;
+    if(distance_sensor != undefined){
+        distance_sensor.setDistance(distance);
+
+        distance_sensor.propergateCalc();
+    }
+}
+
 async function periodicTask() {
     const result = await sendData({
         command : "status"
@@ -348,6 +361,12 @@ async function periodicTask() {
         updateFaceDetection(face);
     }
 
+    const distance = queue["distance"];
+    if(distance != undefined){
+        assert(typeof distance == "number");
+        updateDistanceSensor(distance);
+    }
+
     Canvas.one.requestUpdateCanvas();
 
     setTimeout(periodicTask, 1000);
@@ -361,6 +380,14 @@ export async function asyncBodyOnLoad(){
 
     cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
     motorIcon  = document.getElementById("motor-icon") as HTMLImageElement;
+    distanceSensorIcon  = document.getElementById("distance-sensor-icon") as HTMLImageElement;
+    ttsIcon    = document.getElementById("tts-icon") as HTMLImageElement;
+    
+    ttsAudio    = document.getElementById("tts-audio") as HTMLAudioElement;
+    ttsAudio.addEventListener("ended", (ev:Event)=>{
+        msg("TTS end");
+    })
+
     main = new Main();
 
     if( urlOrigin != "http://127.0.0.1:5500"){

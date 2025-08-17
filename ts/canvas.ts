@@ -208,8 +208,12 @@ export class Canvas {
                 }
             }
         }
-        else if(this.draggedUI instanceof Button){
-            await this.draggedUI.click();
+        else{
+            msg(`click:${this.draggedUI.constructor.name}`);
+
+            if(this.draggedUI instanceof Button){
+                await this.draggedUI.click();
+            }
         }
 
         this.canvas.releasePointerCapture(this.pointerId);
