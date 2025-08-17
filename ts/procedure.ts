@@ -74,7 +74,7 @@ export class IfBlock extends NestBlock {
     }
 
     isTrue() : boolean {
-        throw new MyError();
+        return this.conditionPort.value == 1;
     }
 
     trueBlock() : Block | undefined {

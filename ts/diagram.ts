@@ -63,7 +63,7 @@ export class Port {
         };
     }
 
-    setPortValue(value : number){
+    setPortValue(value : any | undefined){
         this.value = value;
         this.destinations.forEach(x => x.setPortValue(value));
     }
@@ -95,6 +95,17 @@ export class Port {
             const x = this.position.x - 7;
             const y = this.position.y + 7;
             ctx.fillText(this.name, x, y);
+            ctx.restore();
+        }
+
+        if(this.value != undefined){
+
+            ctx.save();
+            ctx.font = '24px Arial';
+            ctx.fillStyle = "black";
+            const x = this.position.x - 7 + Port.radius;
+            const y = this.position.y + 7;
+            ctx.fillText(`${this.value}`, x, y);
             ctx.restore();
         }
     }
@@ -222,12 +233,6 @@ export class Main {
                     $vlist({
                         column : "100%",
                         children : [
-                            $label({
-                                text : "button"
-                            })
-                            ,
-                            new StartBlock({ inToolbox : true })
-                            ,
                             new IfBlock({ inToolbox : true })
                             ,
                             new InfiniteLoop({ inToolbox : true })
@@ -249,6 +254,8 @@ export class Main {
                             new UltrasonicDistanceSensorBlock({ inToolbox : true })
                             ,
                             new TTSBlock({ inToolbox : true })
+                            ,
+                            new SleepBlock({ inToolbox : true })
                         ]
                     })
                     ,
@@ -368,7 +375,7 @@ async function periodicTask() {
 
     Canvas.one.requestUpdateCanvas();
 
-    setTimeout(periodicTask, 1000);
+    setTimeout(periodicTask, 10);
 }
 
 function getTopProcedures() : Block[] {
@@ -427,6 +434,7 @@ export async function asyncBodyOnLoad(){
     motorIcon  = document.getElementById("motor-icon") as HTMLImageElement;
     distanceSensorIcon  = document.getElementById("distance-sensor-icon") as HTMLImageElement;
     ttsIcon    = document.getElementById("tts-icon") as HTMLImageElement;
+    sleepIcon    = document.getElementById("sleep-icon") as HTMLImageElement;
     
     ttsAudio    = document.getElementById("tts-audio") as HTMLAudioElement;
     ttsAudio.addEventListener("ended", (ev:Event)=>{

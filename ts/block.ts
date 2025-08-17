@@ -22,6 +22,7 @@ export let motorIcon  : HTMLImageElement;
 export let cameraImg : HTMLImageElement;
 export let distanceSensorIcon : HTMLImageElement;
 export let ttsIcon : HTMLImageElement;
+export let sleepIcon : HTMLImageElement;
 
 export let ttsAudio  : HTMLAudioElement;
 
@@ -105,7 +106,7 @@ export abstract class Block extends UI {
     }
 
     isProcedure() : boolean {
-        return this instanceof NestBlock || this instanceof TTSBlock;
+        return this instanceof NestBlock || this instanceof TTSBlock || this instanceof SleepBlock;
     }
 
     getPortFromPosition(pos : Vec2) : Port | undefined {
@@ -318,43 +319,6 @@ export abstract class Block extends UI {
 }
 
 
-export class StartBlock extends Block {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ new Port(this, PortType.bottom) ];
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
-    }
-
-    draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
-
-        const x2 = x1 + 35;
-        const x3 = x1 + this.minSize!.x;
-        const y2 = y1 + this.minSize!.y - notchRadius;
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, y2, null],
-            [x2, y2, this.ports[0]],
-            [x3, y2, null],
-
-            [x3, y1, null],
-        ]);
-
-        const x = this.position.x + 20;
-        const y = this.position.y + 40;
-
-        this.ctx.strokeStyle = textColor;
-        this.ctx.strokeText("Start", x, y);
-
-    }
-}
 
 
 export abstract class InputBlock extends Block {
@@ -727,6 +691,34 @@ export class TTSBlock extends InputTextBlock {
     }
 }
 
+
+export class SleepBlock extends InputTextBlock {
+    constructor(data : Attr){
+        super(data);
+        this.ports = [ 
+            new Port(this, PortType.top), 
+            new Port(this, PortType.bottom) 
+        ];
+
+        this.input.value = "3";
+        this.input.style.width = "45px";
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 50);
+    }
+
+    draw(): void {
+        this.drawActionBlock();
+        this.drawIcon(sleepIcon);
+    }
+
+    async run(){
+        const second = parseFloat(this.input.value.trim());
+        await sleep(second * 1000);
+    }
+}
+
 export class FaceDetectionBlock extends Block {
     face : number[] = [];
 
@@ -852,14 +844,15 @@ function  calcTerm(map : Map<string, number>, term : Term) : number {
     let value : number;
 
     if(term instanceof Rational){
-        value = term.fval();
+        return term.fval();
     }
     else if(term instanceof ConstNum){
-        value = term.value.fval();
+        return term.value.fval();
     }
     else if(term instanceof RefVar){
         value = map.get(term.name)!;
         assert(value != undefined);
+        return value;
     }
     else if(term instanceof App){
         const app = term;
@@ -872,6 +865,15 @@ function  calcTerm(map : Map<string, number>, term : Term) : number {
         }
         else if(app.isDiv()){
             value = arg_values[0] / arg_values[1];
+        }
+        else if(app.isEq()){
+            value = (arg_values[0] == arg_values[1] ? 1 : 0);
+        }
+        else if(app.fncName == "<="){
+            value = (arg_values[0] <= arg_values[1] ? 1 : 0);
+        }
+        else if(app.fncName == "<"){
+            value = (arg_values[0] < arg_values[1] ? 1 : 0);
         }
         else{
             throw new MyError("unimplemented");
@@ -927,18 +929,39 @@ export class CompareBlock extends InputTextBlock {
 
     calc() {
         msg(`start compare: a:${this.ports[0].value}`);
-        const expr = parseMath(this.input.value.trim()) as App;
+        let expr : App;
+
+        try{
+            expr = parseMath(this.input.value.trim()) as App;
+        }
+        catch(error){
+            if(error instanceof parser_ts.SyntaxError){
+                msg(`syntax error`);
+            }
+            else{
+                console.error("An unexpected error occurred:", error);
+            }
+
+            this.ports[1].setPortValue(undefined);
+            return;
+        }
 
         const map = this.makeInputValueMap();
         const result = calcTerm(map, expr);
-        assert(result == 0 || result == 1);
 
-        this.ports[1].setPortValue(result);
+        if(result == 0 || result == 1){
+
+            this.ports[1].setPortValue(result);
+        }
+        else{
+
+            msg(`illegal compare result:${result}`);
+            this.ports[1].setPortValue(undefined);
+        }
     }
 }
 export function makeBlockByTypeName(typeName : string) : Block {
     switch(typeName){
-    case StartBlock.name:                    return new StartBlock({});
     case IfBlock.name:                       return new IfBlock({});
     case CompareBlock.name:                  return new CompareBlock({});
     case InfiniteLoop.name:                  return new InfiniteLoop({});
@@ -947,6 +970,7 @@ export function makeBlockByTypeName(typeName : string) : Block {
     case SetValueBlock.name:                 return new SetValueBlock({});
     case CameraBlock.name:                   return new CameraBlock({});
     case TTSBlock.name:                      return new TTSBlock({});
+    case SleepBlock.name:                    return new SleepBlock({});
     case FaceDetectionBlock.name:            return new FaceDetectionBlock({});
     case JoyStickBlock.name:                 return new JoyStickBlock({});
     case UltrasonicDistanceSensorBlock.name: return new UltrasonicDistanceSensorBlock({});
