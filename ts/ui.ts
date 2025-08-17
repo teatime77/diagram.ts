@@ -332,7 +332,6 @@ export class Editor extends UI {
 
     addBlock(block : Block){
         this.blocks.push(block);
-        block.parent = this;
     }
 
     draw(){

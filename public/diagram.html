@@ -30,6 +30,10 @@ html, body {
     /* box-shadow: 4px 4px 12px rgba(0,0,0,0.3); */
 }
 
+.ui_button {
+    font-size: xx-large;
+}
+
 </style>
 </head>
 
@@ -41,6 +45,11 @@ html, body {
 <audio id="tts-audio" src="static/lib/diagram/audio/ja-JP-Chirp3-HD-Erinome.mp3"></audio>
 
 <canvas id="world" ></canvas>
+
+<div style="display: flex; position: absolute; left: 20px; top: 20px">
+    <button id="start-btn" class="ui_button">Start</button>
+    <button id="download-btn" class="ui_button">Download</button>
+</div>
 
 <script type="text/javascript" src="static/lib/diagram/diagram.js?ver=1"></script>
 

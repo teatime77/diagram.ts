@@ -8,6 +8,7 @@ export const notchRadius = 10;
 export const nest_h1 = 35;
 export const nest_h2 = 30;
 export const nest_h3 = 35;
+export const nest_h123 = nest_h1 + nest_h2 + nest_h3;
 
 export const blockLineWidth = 2;
 const blockLineColor = "brown";
@@ -28,15 +29,12 @@ export enum PortType {
     unknown,
     bottom,
     top,
-    left,
-    right,
 
     inputPort,
     outputPort,
 }
 
 export abstract class Block extends UI {
-    parent? : UI;
     ports : Port[] = [];
     outlineColor : string = "green";
     notchBottom : boolean = true;
@@ -81,6 +79,34 @@ export abstract class Block extends UI {
     }
 
     abstract setMinSize() : void;
+
+    calcHeight() : number {
+        return this.minSize!.y;
+    }
+
+    nextBlock() : Block | undefined {
+        let bottom_port : Port | undefined;
+        
+        if(this instanceof IfBlock){
+            bottom_port = this.bottomPort;
+        }
+        else if(this instanceof InfiniteLoop){            
+        }
+        else{
+            bottom_port = this.ports.find(x => x.type == PortType.bottom);
+        }
+        
+        if(bottom_port != undefined && bottom_port.destinations.length != 0){
+            const dest_port = bottom_port.destinations[0];
+            return dest_port.parent;
+        }
+
+        return undefined;
+    }
+
+    isProcedure() : boolean {
+        return this instanceof NestBlock || this instanceof TTSBlock;
+    }
 
     getPortFromPosition(pos : Vec2) : Port | undefined {
         return this.ports.find(x => x.isNear(pos));
@@ -139,14 +165,6 @@ export abstract class Block extends UI {
             break;
         case PortType.top:
             this.ctx.arc(cx, cy, notchRadius, 0, Math.PI, false);
-            break;
-
-        case PortType.right:
-            this.ctx.arc(cx, cy, notchRadius, 0.5 * Math.PI, 1.5 * Math.PI, true);
-            break;
-
-        case PortType.left:
-            this.ctx.arc(cx, cy, notchRadius, 1.5 * Math.PI, 0.5 * Math.PI, false);
             break;
 
         default:
@@ -293,6 +311,10 @@ export abstract class Block extends UI {
     calc(){
         throw new MyError();
     }
+
+    async run(){
+        throw new MyError();
+    }
 }
 
 
@@ -331,24 +353,6 @@ export class StartBlock extends Block {
         this.ctx.strokeStyle = textColor;
         this.ctx.strokeText("Start", x, y);
 
-    }
-}
-
-export class ActionBlock extends Block {
-    constructor(data : Attr){
-        super(data);
-        this.ports = [ 
-            new Port(this, PortType.top), 
-            new Port(this, PortType.bottom) 
-        ];
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
-    }
-
-    draw(){
-        this.drawActionBlock();
     }
 }
 
@@ -909,7 +913,6 @@ export function makeBlockByTypeName(typeName : string) : Block {
     case IfBlock.name:                       return new IfBlock({});
     case CompareBlock.name:                  return new CompareBlock({});
     case InfiniteLoop.name:                  return new InfiniteLoop({});
-    case ActionBlock.name:                   return new ActionBlock({});
     case InputRangeBlock.name:               return new InputRangeBlock({});
     case ServoMotorBlock.name:               return new ServoMotorBlock({});
     case SetValueBlock.name:                 return new SetValueBlock({});

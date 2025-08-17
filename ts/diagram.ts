@@ -100,8 +100,6 @@ export class Port {
         const pairs = [
             [ PortType.bottom, PortType.top],
             [ PortType.top , PortType.bottom],
-            // [ PortType.left , PortType.right],
-            // [ PortType.right   , PortType.left],
 
             [ PortType.inputPort, PortType.outputPort],
             [ PortType.outputPort, PortType.inputPort]
@@ -232,8 +230,6 @@ export class Main {
                             new InfiniteLoop({ inToolbox : true })
                             ,
                             new CompareBlock({ inToolbox : true })
-                            ,
-                            new ActionBlock({ inToolbox : true })
                             ,
                             new InputRangeBlock({ inToolbox : true })
                             ,
@@ -372,6 +368,28 @@ async function periodicTask() {
     setTimeout(periodicTask, 1000);
 }
 
+function getTopProcedures() : Block[] {
+    const procedure_blocks = Main.one.editor.blocks.filter(x => x.isProcedure()) as Block[];
+
+    const top_blocks : Block[] = [];
+    for(const block of procedure_blocks){
+        const top_port = block.ports.find(x => x.type == PortType.top)!;
+        assert(top_port != undefined);
+        if(top_port.sources.length == 0){
+            top_blocks.push(block);
+        }
+    }
+
+    return top_blocks;
+}
+
+async function startProcedures() {
+    const top_blocks = getTopProcedures();
+    for(const block of top_blocks){
+        msg(`top proc:${block.constructor.name}`);
+    }
+}
+
 export async function asyncBodyOnLoad(){
     msg("loaded");
     let pathname  : string;
@@ -386,7 +404,12 @@ export async function asyncBodyOnLoad(){
     ttsAudio    = document.getElementById("tts-audio") as HTMLAudioElement;
     ttsAudio.addEventListener("ended", (ev:Event)=>{
         msg("TTS end");
-    })
+    });
+
+    const start_btn = $("start-btn") as HTMLButtonElement;
+    start_btn.addEventListener("click", async(ev : MouseEvent)=>{
+        await startProcedures();
+    });
 
     main = new Main();
 

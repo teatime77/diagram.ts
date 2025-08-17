@@ -1,59 +1,62 @@
 namespace diagram_ts {
 //
-abstract class ProcedureBlock extends Block {
-    abstract run() : Promise<void>;
+export abstract class NestBlock extends Block {
+    innerBlock() : Block | undefined {
+        let port : Port;
 
+        if(this instanceof IfBlock){
+            port = this.truePort;
+        }
+        else if(this instanceof InfiniteLoop){
+            port = this.loopPort;
+        }
+        else{
+            throw new MyError();
+        }
 
-    innerBlock(port : Port) : ProcedureBlock | undefined {
         assert(port.type == PortType.bottom);
 
         if(port.destinations.length == 0){
             return undefined;
         }
         else{
-            const parent = port.destinations[0].parent;
-            if(parent instanceof ProcedureBlock){
-                return parent;
+            return port.destinations[0].parent;
+        }
+    }
+
+    innerBlocksHeight() : number {
+        let height = 0;
+
+        for(let block = this.innerBlock(); block != undefined; block = block.nextBlock()){
+            if(height != 0){
+                height -= notchRadius;
             }
-            
-            throw new MyError();
+
+            height += block.calcHeight();
         }
-    }
-
-    nextBlock() : ProcedureBlock | undefined {
-        let inner_port : Port;
-
-        if(this instanceof IfBlock){
-            inner_port = this.truePort;
-        }
-        else if(this instanceof InfiniteLoop){
-            inner_port = this.loopPort;
-        }
-        else{
-            throw new MyError();
-        }
-
-        if(inner_port.destinations.length == 0){
-            return undefined;
-        }
-
-        const next_port = inner_port.destinations[0];
-
-        return next_port.parent as ProcedureBlock;
-    }
-
-    totalHeight() : number {
-        let height = this.minSize!.y;
-
-        for(let block = this.nextBlock(); block != undefined; block = block.nextBlock()){
-            height += block.minSize!.y;
+        if(height != 0){
+            msg(`inner blocks id:${this.idx} h:${height}`);
         }
 
         return height;
     }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(150, nest_h123);
+
+        for(let block = this.innerBlock(); block != undefined; block = block.nextBlock()){
+            block.setMinSize();
+        }
+
+        this.minSize.y += this.innerBlocksHeight();
+    }
+
+    calcHeight() : number {
+        return nest_h123 + this.innerBlocksHeight();
+    }
 }
 
-export class IfBlock extends ProcedureBlock {   
+export class IfBlock extends NestBlock {   
     topPort       = new Port(this, PortType.top);
     bottomPort    = new Port(this, PortType.bottom);
     truePort      = new Port(this, PortType.bottom);
@@ -70,23 +73,12 @@ export class IfBlock extends ProcedureBlock {
         ];
     }
 
-    setMinSize() : void {
-        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
-
-        const true_block = this.trueBlock();
-        if(true_block != undefined){
-            true_block.setMinSize();
-
-            this.minSize.y += true_block.totalHeight();
-        }
-    }
-
     isTrue() : boolean {
         throw new MyError();
     }
 
-    trueBlock() : ProcedureBlock | undefined {
-        return this.innerBlock(this.truePort);
+    trueBlock() : Block | undefined {
+        return this.innerBlock();
     }
 
     draw(){
@@ -94,15 +86,12 @@ export class IfBlock extends ProcedureBlock {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const true_block = this.trueBlock();
-        const true_block_height = (true_block == undefined ? 0 : true_block.totalHeight());
-
         const x2 = x1 + 35;
         const x3 = x2 + 35;
         const x4 = x1 + this.minSize!.x;
 
         const y2 = y1 + nest_h1;
-        const y3 = y2 + nest_h2 + true_block_height;
+        const y3 = y2 + nest_h2 + this.innerBlocksHeight();
         const y4 = y3 + nest_h3 - notchRadius;
 
 
@@ -146,7 +135,7 @@ export class IfBlock extends ProcedureBlock {
     }
 }
 
-export class InfiniteLoop extends ProcedureBlock {
+export class InfiniteLoop extends NestBlock {
     topPort  = new Port(this, PortType.top);
     loopPort = new Port(this, PortType.bottom);
 
@@ -158,19 +147,8 @@ export class InfiniteLoop extends ProcedureBlock {
         ];
     }
 
-    loopBlock() : ProcedureBlock | undefined {
-        return this.innerBlock(this.loopPort);
-    }
-
-    setMinSize() : void {
-        this.minSize = new Vec2(150, nest_h1 + nest_h2 + nest_h3);
-
-        const loop_block = this.loopBlock();
-        if(loop_block != undefined){
-            loop_block.setMinSize();
-
-            this.minSize.y += loop_block.totalHeight();
-        }
+    loopBlock() : Block | undefined {
+        return this.innerBlock();
     }
 
     draw(){
@@ -178,15 +156,12 @@ export class InfiniteLoop extends ProcedureBlock {
         const x1 = pos.x + this.borderWidth + blockLineWidth;
         const y1 = pos.y + this.borderWidth + blockLineWidth;
 
-        const loop_block = this.loopBlock();
-        const loop_block_height = (loop_block == undefined ? 0 : loop_block.totalHeight());
-
         const x2 = x1 + 35;
         const x3 = x2 + 35;
         const x4 = x1 + this.minSize!.x;
 
         const y2 = y1 + nest_h1;
-        const y3 = y2 + nest_h2 + loop_block_height;
+        const y3 = y2 + nest_h2 + this.innerBlocksHeight();
         const y4 = y3 + nest_h3;
 
 

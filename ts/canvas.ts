@@ -95,7 +95,7 @@ export class Canvas {
                     msg(`range: box${target.boxSize.x.toFixed()} out:${target.minSize!.x}`);
                 }
 
-                if(target.parent == undefined){
+                if(target.inToolbox){
 
                     const block = target.copy();
                     Main.one.editor.addBlock(block);

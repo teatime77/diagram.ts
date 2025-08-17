@@ -9,6 +9,7 @@ export const setPlayMode = i18n_ts.setPlayMode;
 export const PlayMode    = i18n_ts.PlayMode;
 export const sleep = i18n_ts.sleep;
 export const append  = i18n_ts.append;
+export const $ = i18n_ts.$;
 
 export const last    = i18n_ts.last;
 export const unique  = i18n_ts.unique;
