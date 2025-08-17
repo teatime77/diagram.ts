@@ -1,6 +1,9 @@
 namespace diagram_ts {
 //
 export let urlOrigin : string;
+let startButton : HTMLButtonElement;
+export let stopFlag : boolean = false;
+let isRunning : boolean = false;
 
 class Variable {
     name! : string;
@@ -383,14 +386,35 @@ function getTopProcedures() : Block[] {
     return top_blocks;
 }
 
-async function startProcedures() {
-    const top_blocks = getTopProcedures();
-    for(const block of top_blocks){
-        msg(`top proc:${block.constructor.name}`);
+export async function runBlockChain(top_block : Block){
+    for(let block : Block | undefined = top_block; block != undefined; block = block.nextBlock()){
         await block.run();
+
+        if(stopFlag){
+            break;
+        }
+    }
+}
+
+async function startProcedures() {
+    startButton.innerText = "Stop";
+
+    isRunning = true;
+    stopFlag = false;
+
+    const top_blocks = getTopProcedures();
+    for(const top_block of top_blocks){
+        msg(`top proc:${top_block.constructor.name}`);
+        await runBlockChain(top_block);
+
+        if(stopFlag){
+            break;
+        }
     }
 
-    msg("procedures complete.")
+    msg("procedures complete.");
+    isRunning = false;
+    startButton.innerText = "Start";
 }
 
 export async function asyncBodyOnLoad(){
@@ -409,9 +433,18 @@ export async function asyncBodyOnLoad(){
         msg("TTS end");
     });
 
-    const start_btn = $("start-btn") as HTMLButtonElement;
-    start_btn.addEventListener("click", async(ev : MouseEvent)=>{
-        await startProcedures();
+    startButton = $("start-btn") as HTMLButtonElement;
+    startButton.addEventListener("click", async(ev : MouseEvent)=>{
+        if(isRunning){
+            // Reset the playback position to the start
+            ttsAudio.pause();
+            ttsAudio.currentTime = 0;
+
+            stopFlag = true;
+        }
+        else{
+            await startProcedures();
+        }
     });
 
     main = new Main();

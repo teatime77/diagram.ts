@@ -713,6 +713,10 @@ export class TTSBlock extends InputTextBlock {
                 audio.addEventListener('ended', () => {
                     resolve();
                 }, { once: true }); // Use { once: true } to automatically remove the listener after it fires
+
+                audio.addEventListener("pause", () => {
+                    resolve();
+                }, { once: true }); // Use { once: true } to automatically remove the listener after it fires
             });
 
             msg("Audio playback has finished.");

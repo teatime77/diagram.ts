@@ -130,7 +130,7 @@ export class IfBlock extends NestBlock {
     async run(){
         const true_block = this.trueBlock();
         if(true_block != undefined && this.isTrue()){
-            await true_block.run();
+            await runBlockChain(true_block);
         }
     }
 }
@@ -187,11 +187,14 @@ export class InfiniteLoop extends NestBlock {
         const loop_block = this.loopBlock();
         if(loop_block != undefined){
             while(true){
-                await loop_block.run();
+                await runBlockChain(loop_block);
+
+                if(stopFlag){
+                    break;
+                }
             }
         }
     }
-
 }
 
 }
