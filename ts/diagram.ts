@@ -65,7 +65,17 @@ export class Port {
 
     setPortValue(value : any | undefined){
         this.value = value;
-        this.destinations.forEach(x => x.setPortValue(value));
+
+        for(const dst of this.destinations){
+            dst.setPortValue(value);
+
+            dst.parent.valueChanged()
+            .then(()=>{
+            })
+            .catch(error => {
+                console.error("Failed to value change:", error);
+            });
+        }
     }
 
     isNear(pos : Vec2){
@@ -139,10 +149,6 @@ export class Port {
         append(dst.sources, src);
 
         msg(`connect port:${this.idx}=>${port.idx}`);
-    }
-
-    async portValueChanged(value : number){
-        await this.parent.valueChanged(value);
     }
 }
 

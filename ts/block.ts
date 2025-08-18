@@ -305,8 +305,8 @@ export abstract class Block extends UI {
         return [];
     }
 
-    async valueChanged(value : number){
-        msg(`changed : [${value}] ${this.constructor.name}`);
+    async valueChanged(){
+        msg(`changed : ${this.constructor.name}`);
     }
 
     calc(){
@@ -386,9 +386,6 @@ export class InputRangeBlock extends InputBlock {
             const value = parseFloat(this.input.value);
             for(const src of this.ports){
                 src.setPortValue(value);
-                for(const dst of src.destinations){
-                    await dst.portValueChanged(value);
-                }
             }
             
             Canvas.one.requestUpdateCanvas();
@@ -510,9 +507,14 @@ export class ServoMotorBlock extends InputBlock {
         this.drawIcon(motorIcon);
     }
 
-    async valueChanged(value : number){
+    async valueChanged(){
         const channel = parseInt(this.input.value);
+        const value   = this.ports[0].value;
         msg(`motor changed : ch:${channel} value:[${value}]`);
+        if(typeof value != "number"){
+            msg(`illegal motor value:${value}`);
+            return;
+        }
 
         await sendData({
             command : "servo",
