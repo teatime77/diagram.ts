@@ -68,14 +68,27 @@ export function setDragDrop(canvas : HTMLCanvasElement){
 
             const reader = new FileReader();
 
-            reader.onload = () => {
+            reader.onload = async() => {
                 const json = reader.result as string;
                 const obj  = JSON.parse(json);
 
                 assert(Array.isArray(obj));
 
                 // msg(`dropped:[${JSON.stringify(data, null, 2)}]`);
-                loadJson(obj as any[])
+                loadJson(obj as any[]);
+
+                const repaint_count = repaintCount;
+                Canvas.one.requestUpdateCanvas();
+
+                // port positions are set on paing.
+                // edges can be drawn after port position settings.
+                while(repaint_count == repaintCount){
+                    await sleep(100);
+                }
+
+                // draw input elements in blocks.
+                Main.one.editor.blocks.forEach(x => x.setPosition(x.position));
+                Canvas.one.requestUpdateCanvas();
             };
 
             reader.readAsText(file);        
@@ -146,9 +159,5 @@ function loadJson(objs:any[]){
 
     const canvas = Main.one.canvas;
     setContext2D(canvas.ctx, canvas.root);
-
-    canvas.layoutRoot();
-    // canvas.repaint();
-    canvas.requestUpdateCanvas();
 }
 }

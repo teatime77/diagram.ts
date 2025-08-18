@@ -1,5 +1,7 @@
 namespace diagram_ts {
 //
+export let repaintCount = 0;
+
 let animationFrameId : number | null = null;
 
 export class Canvas {
@@ -268,6 +270,7 @@ export class Canvas {
             this.drawDraggedPort(this.draggedUI);
         }
         // msg("repaint");
+        repaintCount++;
     }
 
     drawLine(start : Vec2, end : Vec2, color : string, lineWidth : number = 2){
