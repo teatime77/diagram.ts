@@ -354,6 +354,21 @@ function updateDistanceSensor(distance : number){
     }
 }
 
+async function clearQueue() {
+    for(let idx = 0; ; idx++){
+        const result = await sendData({
+            command : "status"
+        });
+
+        const queue = result["queue"]
+        if(queue == null){
+            break;
+        }
+        
+        msg(`clear queue:${idx}`);
+    }
+}
+
 async function periodicTask() {
     const result = await sendData({
         command : "status"
@@ -466,6 +481,8 @@ export async function asyncBodyOnLoad(){
     });
 
     main = new Main();
+
+    await clearQueue();
 
     if( urlOrigin != "http://127.0.0.1:5500"){
         await periodicTask();

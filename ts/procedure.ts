@@ -192,6 +192,8 @@ export class InfiniteLoop extends NestBlock {
                 if(stopFlag){
                     break;
                 }
+
+                await sleep(100);
             }
         }
     }
