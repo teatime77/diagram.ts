@@ -385,10 +385,13 @@ export class InputRangeBlock extends InputBlock {
         this.input.addEventListener("input", async (ev : Event) => {
             const value = parseFloat(this.input.value);
             for(const src of this.ports){
+                src.setPortValue(value);
                 for(const dst of src.destinations){
-                    await dst.valueChanged(value);
+                    await dst.portValueChanged(value);
                 }
             }
+            
+            Canvas.one.requestUpdateCanvas();
         });
 
         this.minInput.addEventListener('change', (ev : Event) => {
@@ -402,6 +405,24 @@ export class InputRangeBlock extends InputBlock {
         });
 
         this.ports = [ new Port(this, PortType.outputPort) ];
+    }
+
+    makeObj() : any {
+        let obj = Object.assign(super.makeObj(), {
+            value : this.input.value,
+            min   : this.minInput.value,
+            max   : this.maxInput.value
+        });
+
+        return obj;
+    }
+
+    loadObj(obj : any ){        
+        super.loadObj(obj);
+
+        this.input.value    = `${obj.value}`;
+        this.minInput.value = `${obj.min}`;
+        this.maxInput.value = `${obj.max}`;
     }
 
     setMinSize() : void {

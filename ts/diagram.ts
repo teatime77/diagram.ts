@@ -141,7 +141,7 @@ export class Port {
         msg(`connect port:${this.idx}=>${port.idx}`);
     }
 
-    async valueChanged(value : number){
+    async portValueChanged(value : number){
         await this.parent.valueChanged(value);
     }
 }
@@ -352,30 +352,34 @@ async function periodicTask() {
     const result = await sendData({
         command : "status"
     });
-    const json_str = JSON.stringify(result, null, 2);
-    msg(`status:${json_str}`);
 
     const queue = result["queue"]
-    const image_file_name = queue["image_file_name"];
-    if(image_file_name != undefined){
-        updateCameraImage(image_file_name);
+    if(queue != null){
+
+        const json_str = JSON.stringify(result, null, 2);
+        msg(`status:${json_str}`);
+
+        const image_file_name = queue["image_file_name"];
+        if(image_file_name != undefined){
+            updateCameraImage(image_file_name);
+        }
+
+        const face = queue["face"];
+        if(face != undefined){
+            assert(face.length == 4);
+            updateFaceDetection(face);
+        }
+
+        const distance = queue["distance"];
+        if(distance != undefined){
+            assert(typeof distance == "number");
+            updateDistanceSensor(distance);
+        }
+
+        Canvas.one.requestUpdateCanvas();
     }
 
-    const face = queue["face"];
-    if(face != undefined){
-        assert(face.length == 4);
-        updateFaceDetection(face);
-    }
-
-    const distance = queue["distance"];
-    if(distance != undefined){
-        assert(typeof distance == "number");
-        updateDistanceSensor(distance);
-    }
-
-    Canvas.one.requestUpdateCanvas();
-
-    setTimeout(periodicTask, 10);
+    setTimeout(periodicTask, 100);
 }
 
 function getTopProcedures() : Block[] {

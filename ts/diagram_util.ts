@@ -2,7 +2,7 @@ namespace diagram_ts {
 //
 export async function sendData(dataToSend : any) : Promise<any> {
     const url = `${urlOrigin}/send_data`;
-    msg(`post:[${url}]`);
+    // msg(`post:[${url}]`);
 
     try {
         const response = await fetch(url, {
@@ -20,7 +20,7 @@ export async function sendData(dataToSend : any) : Promise<any> {
 
         const result = await response.json(); // Parse the JSON response from Flask
         const json_str = JSON.stringify(result, null, 2); // Pretty print JSON
-        msg(`send data result:[${json_str}]`);
+        // msg(`send data result:[${json_str}]`);
 
         return result;
     } catch (error: any) {
