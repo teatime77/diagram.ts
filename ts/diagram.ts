@@ -205,8 +205,8 @@ export class Main {
         this.editor = new Editor({});
 
         const root = $grid({
-            rows : "100px 100%",        
-            columns : "100px 25% 75%",
+            rows : "60px 100%",        
+            columns : "10px 25% 75%",
             cells : [
                 // [
                 //     $filler({
@@ -216,21 +216,7 @@ export class Main {
                 // ]
                 // ,
                 [
-                    $button({
-                        text : "download",
-                        click : async ()=>{
-                            saveJson();
-                        }
-                    })
-                    ,
-                    $button({
-                        text : "start",
-                        click : async ()=>{
-                            await startProgram();
-                        }
-                    })
-                    ,
-                    $filler({})
+                    $filler({ colspan : 3 })
                 ]
                 ,
                 [
@@ -285,30 +271,6 @@ export class Main {
         this.canvas.resizeCanvas();
     }
 
-}
-
-export async function startProgram(){
-    await sendData({
-        command : "init",
-        name: "hamada",
-        age: 66
-    });
-
-    try {
-        const url = `${urlOrigin}/get_data`;
-        msg(`fetch:[${url}]`);
-        const response = await fetch(url); // Default method is GET
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json(); // Parse the JSON response from Flask
-        const json_str = JSON.stringify(data, null, 2); // Pretty print JSON
-        msg(`start click name:[${data["product_name"]}] price:[${data["price"]}] json:[${json_str}]`);
-    } catch (error: any) {
-        msg(`start click error: ${error.message || error}`);
-    }
 }
 
 function fetchImage(image_url : string){
@@ -472,6 +434,12 @@ export async function asyncBodyOnLoad(){
             await startProcedures();
         }
     });
+
+    const downloadBtn = $("download-btn") as HTMLButtonElement;
+    downloadBtn.addEventListener("click", async(ev : MouseEvent)=>{
+        saveJson();
+    });
+
 
     main = new Main();
 

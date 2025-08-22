@@ -870,6 +870,9 @@ function  calcTerm(map : Map<string, number>, term : Term) : number {
         else if(app.isDiv()){
             value = arg_values[0] / arg_values[1];
         }
+        else if(app.fncName == "%"){
+            value = arg_values[0] % arg_values[1];
+        }
         else if(app.isEq()){
             value = (arg_values[0] == arg_values[1] ? 1 : 0);
         }
