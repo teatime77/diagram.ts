@@ -461,17 +461,10 @@ export async function asyncBodyOnLoad(){
     ttsIcon    = document.getElementById("tts-icon") as HTMLImageElement;
     sleepIcon    = document.getElementById("sleep-icon") as HTMLImageElement;
     
-    ttsAudio    = document.getElementById("tts-audio") as HTMLAudioElement;
-    ttsAudio.addEventListener("ended", (ev:Event)=>{
-        msg("TTS end");
-    });
 
     startButton = $("start-btn") as HTMLButtonElement;
     startButton.addEventListener("click", async(ev : MouseEvent)=>{
         if(isRunning){
-            // Reset the playback position to the start
-            ttsAudio.pause();
-            ttsAudio.currentTime = 0;
 
             stopFlag = true;
         }

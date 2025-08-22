@@ -24,8 +24,6 @@ export let distanceSensorIcon : HTMLImageElement;
 export let ttsIcon : HTMLImageElement;
 export let sleepIcon : HTMLImageElement;
 
-export let ttsAudio  : HTMLAudioElement;
-
 export enum PortType {
     unknown,
     bottom,
@@ -668,6 +666,8 @@ export class CameraBlock extends Block {
 }
 
 export class TTSBlock extends InputTextBlock {
+    speech : Speech;
+
     constructor(data : Attr){
         super(data);
         this.ports = [ 
@@ -676,6 +676,9 @@ export class TTSBlock extends InputTextBlock {
         ];
 
         this.input.value = "こんにちは!どうぞよろしく!";
+
+        i18n_ts.setVoiceLanguageCode("jpn");
+        this.speech = new Speech();
     }
 
     setMinSize() : void {
@@ -688,29 +691,7 @@ export class TTSBlock extends InputTextBlock {
     }
 
     async run(){
-        const audio = ttsAudio;
-
-        try {
-            msg("start audio play")
-            // Start playing the audio
-            await audio.play();
-
-            // Create a new Promise that resolves when the 'ended' event is triggered
-            await new Promise<void>((resolve) => {
-                audio.addEventListener('ended', () => {
-                    resolve();
-                }, { once: true }); // Use { once: true } to automatically remove the listener after it fires
-
-                audio.addEventListener("pause", () => {
-                    resolve();
-                }, { once: true }); // Use { once: true } to automatically remove the listener after it fires
-            });
-
-            msg("Audio playback has finished.");
-        } catch (error) {
-            // Catch errors that might occur if the browser blocks autoplay
-            console.error("Audio playback failed:", error);
-        }        
+        await this.speech.speak_waitEnd(this.input.value.trim());
     }
 }
 
