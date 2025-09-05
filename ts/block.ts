@@ -74,6 +74,9 @@ export abstract class Block extends UI {
         };
     }
 
+    clearBlock() : void {        
+    }
+
     loadObj(obj : any ){        
     }
 
@@ -331,6 +334,11 @@ export abstract class InputBlock extends Block {
         document.body.appendChild(this.input);
     }
 
+    clearBlock(): void {
+        super.clearBlock();
+        document.body.removeChild(this.input);
+    }
+
     getInputPosition() : [number, number]{
         const [x1, y1, x2, y2] = this.getCornerPosition();
 
@@ -400,6 +408,13 @@ export class InputRangeBlock extends InputBlock {
         });
 
         this.ports = [ new Port(this, PortType.outputPort) ];
+    }
+
+    clearBlock(): void {
+        super.clearBlock();
+        
+        document.body.removeChild(this.minInput);
+        document.body.removeChild(this.maxInput);
     }
 
     makeObj() : any {

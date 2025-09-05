@@ -330,6 +330,11 @@ export class Editor extends UI {
         return this.blocks.slice();
     }
 
+    clearBlocks(){
+        this.blocks.forEach(x => x.clearBlock());
+        this.blocks = [];
+    }
+
     addBlock(block : Block){
         this.blocks.push(block);
     }

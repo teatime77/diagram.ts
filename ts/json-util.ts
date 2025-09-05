@@ -115,6 +115,8 @@ export function saveJson(){
 }
 
 function loadJson(objs:any[]){
+    Main.one.editor.clearBlocks();
+    
     const block_map = new Map<number, Block>();
     const port_map = new Map<number, Port>();
 
