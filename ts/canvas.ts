@@ -57,36 +57,11 @@ export class Canvas {
         // console.log(`Canvas X: ${canvasX}, Canvas Y: ${canvasY}`);
     }
 
-    getUIFromPosition(ui : UI, pos : Vec2) : UI | Port | undefined {
-        for(const child of ui.children()){
-            const target = this.getUIFromPosition(child, pos);
-            if(target != undefined){
-                return target;
-            }
-        }
-
-        if(ui.position.x <= pos.x && pos.x < ui.position.x + ui.boxSize.x){
-            if(ui.position.y <= pos.y && pos.y < ui.position.y + ui.boxSize.y){
-
-                if(ui instanceof Block){
-                    const port = ui.getPortFromPosition(pos);
-                    if(port != undefined){
-                        return port;
-                    }
-                }
-
-                return ui;
-            }
-        }
-
-        return undefined;
-    }
-
     pointerdown(ev:PointerEvent){
         this.moved = false;
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.getUIFromPosition(this.root, pos);
+        const target = this.root.getUIPortFromPosition(pos);
         if(target != undefined){
             msg(`down:${target.constructor.name}`);
             this.downPos   = pos;
@@ -154,7 +129,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.getUIFromPosition(this.root, pos);
+        const target = this.root.getUIPortFromPosition(pos);
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
 
         this.movePos = pos;
@@ -187,7 +162,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.getUIFromPosition(this.root, pos);
+        const target = this.root.getUIPortFromPosition(pos);
 
         if(this.moved){
             msg("dragged");

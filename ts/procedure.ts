@@ -82,9 +82,9 @@ export class IfBlock extends NestBlock {
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth;
-        const y1 = pos.y + this.borderWidth;
+        const [xa, ya, xb, yb] = this.drawBox();
+        const x1 = xa + this.borderWidth;
+        const y1 = ya + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;
@@ -152,9 +152,9 @@ export class InfiniteLoop extends NestBlock {
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth;
-        const y1 = pos.y + this.borderWidth;
+        const [xa, ya, xb, yb] = this.drawBox();
+        const x1 = xa + this.borderWidth;
+        const y1 = ya + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;
@@ -180,7 +180,26 @@ export class InfiniteLoop extends NestBlock {
 
             [x4, y1, null],
             [x2, y1, this.topPort]
-        ])
+        ]);
+        const borderWidth = this.borderWidth;
+        this.borderWidth = 0.5;
+        this.drawOutline([
+            [x1, y1, null],
+
+            [x1, y4, null],
+            [x4, y4, null],
+
+            [x4, y3, null],
+            [x2, y3, null],
+
+            [x2, y2, null],
+            [x3, y2, this.loopPort],
+            [x4, y2, null],
+
+            [x4, y1, null],
+            [x2, y1, this.topPort]
+        ], "yellow");
+        this.borderWidth = borderWidth;
     }
 
     async run(){

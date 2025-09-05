@@ -109,6 +109,26 @@ export abstract class Block extends UI {
         return this instanceof NestBlock || this instanceof TTSBlock || this instanceof SleepBlock;
     }
 
+    getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
+        const port = this.getPortFromPosition(pos);
+        if(port != undefined){
+            return port;
+        }
+
+        const target = super.getUIPortFromPosition(pos);
+        if(target != undefined){
+            return target;
+        }
+
+        const [xa, ya, xb, yb] = this.drawBox();
+
+        if(xa <= pos.x && pos.x < xb){
+            if(ya <= pos.y && pos.y < yb){
+                return this;
+            }
+        }
+    }
+
     getPortFromPosition(pos : Vec2) : Port | undefined {
         return this.ports.find(x => x.isNear(pos));
     }
@@ -173,7 +193,7 @@ export abstract class Block extends UI {
         }
     }
 
-    drawOutline(points : [number, number, null|Port][]){
+    drawOutline(points : [number, number, null|Port][], color : string = blockLineColor){
         const canvas = Canvas.one;
         if(canvas.draggedUI == this){
 
@@ -183,9 +203,7 @@ export abstract class Block extends UI {
             this.ctx.globalAlpha = 0.5;
         }
 
-        this.ctx.fillStyle = this.backgroundColor!;
-
-        this.ctx.strokeStyle = blockLineColor;
+        this.ctx.strokeStyle = color;
         this.ctx.lineWidth   = this.borderWidth;
 
         this.ctx.beginPath();
@@ -211,7 +229,6 @@ export abstract class Block extends UI {
         }
 
         this.ctx.closePath();
-        this.ctx.fill();
         this.ctx.stroke();
 
         if(this.ctx.globalAlpha != 1.0){
@@ -234,32 +251,20 @@ export abstract class Block extends UI {
     }
 
     drawIcon(img : HTMLImageElement){
-        const [x1, y1, x2, y2] = this.getCornerPosition();
+        const [x1, y1, x2, y2] = this.borderInnerBox();
 
 
-        const img_height = (y2 - y1) - 6;
+        const img_height = y2 - y1;
         const img_width  = img_height * img.width / img.height;
 
-        const img_x = x2 - img_width - 5;
-        const img_y = y1 + 3;
+        const img_x = x2 - img_width;
+        const img_y = y1;
 
         this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
     }
 
-    getCornerPosition() : [number, number, number, number] {
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth;
-        const y1 = pos.y + this.borderWidth;
-
-        const x2 = x1 + this.minSize!.x;
-        const y2 = y1 + this.minSize!.y;
-
-        return [x1, y1, x2, y2];
-    }
-
     drawDataflowBlock(){
-        const [x1, y1, x2, y2] = this.getCornerPosition();
-
+        const [x1, y1, x2, y2] = this.borderInnerBox();
 
         this.drawOutline([
             [x1, y1, null],
@@ -272,23 +277,20 @@ export abstract class Block extends UI {
     }
 
     drawActionBlock(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth;
-        const y1 = pos.y + this.borderWidth;
+        const [x1, y1, x2_, y2_] = this.borderInnerBox();
 
         const x2 = x1 + 35;
-        const x3 = x1 + this.minSize!.x;
 
-        const y2 = y1 + this.minSize!.y - notchRadius;
+        const y2 = y2_ - notchRadius;
 
         this.drawOutline([
             [x1, y1, null],
 
             [x1, y2, null],
             [x2, y2, this.ports[1]],
-            [x3, y2, null],
+            [x2_, y2, null],
 
-            [x3, y1, null],
+            [x2_, y1, null],
             [x2, y1, this.ports[0]]
         ]);
     }
@@ -339,7 +341,7 @@ export abstract class InputBlock extends Block {
     }
 
     getInputPosition() : [number, number]{
-        const [x1, y1, x2, y2] = this.getCornerPosition();
+        const [x1, y1, x2, y2] = this.borderInnerBox();
 
         const rect = this.input.getBoundingClientRect();
 
@@ -441,13 +443,14 @@ export class InputRangeBlock extends InputBlock {
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [pos, size] = this.drawBox();
+        const [xa, ya, xb, yb] = this.drawBox();
+        const height = yb - ya;
 
         const rc1 = this.input.getBoundingClientRect();
         const rc2 = this.minInput.getBoundingClientRect();
 
-        const x1 = pos.x + this.borderWidth + 2 * Port.radius;
-        const y1 = pos.y + 0.5 * (size.y - (rc1.height + rc2.height));
+        const x1 = xa + this.borderWidth + 2 * Port.radius;
+        const y1 = ya + 0.5 * (height - (rc1.height + rc2.height));
         const y2 = y1 + rc1.height;
 
         this.input.style.left = `${x1}px`;
@@ -503,7 +506,7 @@ export class ServoMotorBlock extends InputBlock {
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [x1, y1, x2, y2] = this.getCornerPosition();
+        const [x1, y1, x2, y2] = this.borderInnerBox();
 
         const rect = this.input.getBoundingClientRect();
 
@@ -535,11 +538,9 @@ export class ServoMotorBlock extends InputBlock {
         });
     }
 
-
     calc(){
         msg(`motor calc:${this.ports[0].value}`);
     }
-
 }
 
 
@@ -606,13 +607,13 @@ export class SetValueBlock extends InputTextBlock {
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth;
+        const [xa, ya, xb, yb] = this.drawBox();
+        const x1 = xa + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
 
-        const y1 = pos.y + this.borderWidth;
+        const y1 = ya + this.borderWidth;
         const y2 = y1 + this.minSize!.y - notchRadius;
 
         this.drawOutline([
@@ -653,7 +654,7 @@ export class CameraBlock extends Block {
     draw(){
         this.drawDataflowBlock();
 
-        const [x1, y1, x2, y2] = this.getCornerPosition();
+        const [x1, y1, x2, y2] = this.borderInnerBox();
 
         let img : HTMLImageElement;
 
@@ -781,7 +782,7 @@ export class FaceDetectionBlock extends Block {
 
         const camera = this.getCamera();
         if(camera != undefined){
-            const [x1, y1, x2, y2] = this.getCornerPosition();
+            const [x1, y1, x2, y2] = this.borderInnerBox();
 
             if(cameraImg == undefined){
                 return;

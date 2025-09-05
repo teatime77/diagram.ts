@@ -88,7 +88,7 @@ export abstract class UI {
     colspan : number = 1;
     rowspan : number = 1;
     margin : number[] = [ 4, 4, 4, 4 ];     // left, right, top, bottom
-    borderWidth : number = 3;
+    borderWidth : number = 7;
     padding : number[] = [ 0, 0, 0, 0 ];    // left, right, top, bottom
 
     horizontalAlign? : string;
@@ -158,18 +158,57 @@ export abstract class UI {
         this.setPosition(new Vec2(x, y));
     }
 
-    drawBox() : [Vec2, Vec2] {
-        const x = this.position.x + this.margin[0];
-        const y = this.position.y + this.margin[2];
-        const w = this.boxSize.x - this.marginWidth();
-        const h = this.boxSize.y - this.marginHeight();
+    drawBox() : [number, number, number, number] {
+        const xa = this.position.x + this.margin[0];
+        const ya = this.position.y + this.margin[2];
+        const xb = xa + this.boxSize.x - this.marginWidth();
+        const yb = ya + this.boxSize.y - this.marginHeight();
 
-        return [ new Vec2(x, y), new Vec2(w, h) ];
+        return [ xa, ya, xb, yb ];
+    }
+
+    borderCenterBox() : [number, number, number, number] {
+        const [xa, ya, xb, yb] = this.drawBox();
+
+        const x1 = xa + this.borderWidth / 2;
+        const y1 = ya + this.borderWidth / 2;
+
+        const x2 = xb - this.borderWidth / 2;
+        const y2 = yb - this.borderWidth / 2;
+
+        return [x1, y1, x2, y2];
+
+    }
+
+    borderInnerBox() : [number, number, number, number] {
+        const [xa, ya, xb, yb] = this.drawBox();
+
+        const x1 = xa + this.borderWidth;
+        const y1 = ya + this.borderWidth;
+
+        const x2 = xb - this.borderWidth;
+        const y2 = yb - this.borderWidth;
+
+        return [x1, y1, x2, y2];
+
+    }
+
+    getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
+        for(const child of this.children()){
+            const target = child.getUIPortFromPosition(pos);
+            if(target != undefined){
+                return target;
+            }
+        }
+
+        return undefined;
     }
 
     draw(){
-        const [pos, size] = this.drawBox();
-        this.drawRidgeRect(this.ctx, pos.x, pos.y, size.x, size.y, this.borderWidth);
+        const [xa, ya, xb, yb] = this.drawBox();
+        const w = xb - xa;
+        const h = yb - ya;
+        this.drawRidgeRect(this.ctx, xa, ya, w, h, this.borderWidth);
     }
 
     str() : string {
