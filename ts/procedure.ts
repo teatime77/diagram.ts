@@ -83,8 +83,8 @@ export class IfBlock extends NestBlock {
 
     draw(){
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const x1 = pos.x + this.borderWidth;
+        const y1 = pos.y + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;
@@ -153,8 +153,8 @@ export class InfiniteLoop extends NestBlock {
 
     draw(){
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const x1 = pos.x + this.borderWidth;
+        const y1 = pos.y + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x2 + 35;

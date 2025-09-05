@@ -10,7 +10,6 @@ export const nest_h2 = 30;
 export const nest_h3 = 35;
 export const nest_h123 = nest_h1 + nest_h2 + nest_h3;
 
-export const blockLineWidth = 2;
 const blockLineColor = "brown";
 const nearPortDistance = 10;
 
@@ -187,7 +186,7 @@ export abstract class Block extends UI {
         this.ctx.fillStyle = this.backgroundColor!;
 
         this.ctx.strokeStyle = blockLineColor;
-        this.ctx.lineWidth   = blockLineWidth;
+        this.ctx.lineWidth   = this.borderWidth;
 
         this.ctx.beginPath();
 
@@ -249,8 +248,8 @@ export abstract class Block extends UI {
 
     getCornerPosition() : [number, number, number, number] {
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const x1 = pos.x + this.borderWidth;
+        const y1 = pos.y + this.borderWidth;
 
         const x2 = x1 + this.minSize!.x;
         const y2 = y1 + this.minSize!.y;
@@ -274,8 +273,8 @@ export abstract class Block extends UI {
 
     drawActionBlock(){
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const x1 = pos.x + this.borderWidth;
+        const y1 = pos.y + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
@@ -447,7 +446,7 @@ export class InputRangeBlock extends InputBlock {
         const rc1 = this.input.getBoundingClientRect();
         const rc2 = this.minInput.getBoundingClientRect();
 
-        const x1 = pos.x + this.borderWidth + blockLineWidth + 2 * Port.radius;
+        const x1 = pos.x + this.borderWidth + 2 * Port.radius;
         const y1 = pos.y + 0.5 * (size.y - (rc1.height + rc2.height));
         const y2 = y1 + rc1.height;
 
@@ -608,12 +607,12 @@ export class SetValueBlock extends InputTextBlock {
 
     draw(){
         const [pos, size] = this.drawBox();
-        const x1 = pos.x + this.borderWidth + blockLineWidth;
+        const x1 = pos.x + this.borderWidth;
 
         const x2 = x1 + 35;
         const x3 = x1 + this.minSize!.x;
 
-        const y1 = pos.y + this.borderWidth + blockLineWidth;
+        const y1 = pos.y + this.borderWidth;
         const y2 = y1 + this.minSize!.y - notchRadius;
 
         this.drawOutline([

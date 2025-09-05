@@ -169,7 +169,7 @@ export abstract class UI {
 
     draw(){
         const [pos, size] = this.drawBox();
-        this.drawRidgeRect2(this.ctx, pos.x, pos.y, size.x, size.y, this.borderWidth);
+        this.drawRidgeRect(this.ctx, pos.x, pos.y, size.x, size.y, this.borderWidth);
     }
 
     str() : string {
@@ -191,7 +191,7 @@ export abstract class UI {
     }
 
 
-    drawRidgeRect2(ctx : CanvasRenderingContext2D, x : number, y : number, width : number, height : number, ridgeWidth : number, isInset = false) {
+    drawRidgeRect(ctx : CanvasRenderingContext2D, x : number, y : number, width : number, height : number, ridgeWidth : number, isInset = false) {
         // Define light and dark colors
         // const lightColor = isInset ? '#888' : '#eee'; // Darker for inset top/left
         // const darkColor = isInset ? '#eee' : '#888';  // Lighter for inset bottom/right
@@ -222,36 +222,6 @@ export abstract class UI {
         ctx.lineTo(x + ridgeWidth / 2, y + height - ridgeWidth / 2); // Bottom-left corner
         ctx.stroke();
     }
-
-    drawRidgeRect(ctx : CanvasRenderingContext2D, x : number, y : number, width : number, height : number, borderWidth : number, isInset = false){
-        // Colors for ridge effect
-        const lightColor = "#ffffff";
-        const darkColor = "#888888";
-        const backgroundColor = "#cccccc";
-
-        // Fill rectangle background
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(x, y, width, height);
-
-        // Top & left (highlight)
-        ctx.strokeStyle = lightColor;
-        ctx.lineWidth = borderWidth;
-        ctx.beginPath();
-        ctx.moveTo(x + width, y);       // Top-right
-        ctx.lineTo(x, y);               // Top-left
-        ctx.lineTo(x, y + height);      // Bottom-left
-        ctx.stroke();
-
-        // Bottom & right (shadow)
-        ctx.strokeStyle = darkColor;
-        ctx.beginPath();
-        ctx.moveTo(x, y + height);      // Bottom-left
-        ctx.lineTo(x + width, y + height); // Bottom-right
-        ctx.lineTo(x + width, y);       // Top-right
-        ctx.stroke();    
-    }
-
-
 }
 
 export class Filler extends UI {
