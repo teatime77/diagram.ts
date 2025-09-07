@@ -88,7 +88,7 @@ export abstract class UI {
     colspan : number = 1;
     rowspan : number = 1;
     margin : number[] = [ 4, 4, 4, 4 ];     // left, right, top, bottom
-    borderWidth : number = 7;
+    borderWidth : number = 3;
     padding : number[] = [ 0, 0, 0, 0 ];    // left, right, top, bottom
 
     horizontalAlign? : string;

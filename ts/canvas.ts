@@ -244,6 +244,7 @@ export class Canvas {
         if(this.draggedUI instanceof Port){
             this.drawDraggedPort(this.draggedUI);
         }
+        this.root.getAllUI().filter(x => x instanceof Block).forEach(x => x.drawDebug());
         // msg("repaint");
         repaintCount++;
     }

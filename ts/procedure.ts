@@ -82,49 +82,46 @@ export class IfBlock extends NestBlock {
     }
 
     draw(){
-        const [xa, ya, xb, yb] = this.drawBox();
-        const x1 = xa + this.borderWidth;
-        const y1 = ya + this.borderWidth;
+        const [xa, ya, xb, yb] = this.borderInnerBox();
 
-        const x2 = x1 + 35;
+        const x2 = xa + 35;
         const x3 = x2 + 35;
-        const x4 = x1 + this.minSize!.x;
 
-        const y2 = y1 + nest_h1;
+        const y2 = ya + nest_h1;
         const y3 = y2 + nest_h2 + this.innerBlocksHeight();
-        const y4 = y3 + nest_h3 - notchRadius;
+        const y4 = yb - notchRadius;
 
 
         this.drawOutline([
             // left top
-            [x1, y1, null],
+            [xa, ya, null],
 
             // left bottom
-            [x1, y4, null],
+            [xa, y4, null],
 
             // bottom notch
             [x2, y4, this.bottomPort],
 
             // right bottom
-            [x4, y4, null],
+            [xb, y4, null],
 
-            [x4, y3, null],
+            [xb, y3, null],
             [x2, y3, null],
 
             [x2, y2, null],
 
             // loop notch
             [x3, y2, this.truePort],
-            [x4, y2, null],
+            [xb, y2, null],
 
             // right top
-            [x4, y1, null],
+            [xb, ya, null],
 
             // top notch
-            [x2, y1, this.topPort]
+            [x2, ya, this.topPort]
         ]);
 
-        this.conditionPort.drawPort(this.ctx, x4 - Port.radius, 0.5 * (y1 + y2));
+        this.conditionPort.drawPort(this.ctx, xb - Port.radius, 0.5 * (ya + y2));
     }
 
     async run(){
@@ -152,52 +149,49 @@ export class InfiniteLoop extends NestBlock {
     }
 
     draw(){
-        const [xa, ya, xb, yb] = this.drawBox();
-        const x1 = xa + this.borderWidth;
-        const y1 = ya + this.borderWidth;
+        const [xa, ya, xb, yb] = this.borderInnerBox();
 
-        const x2 = x1 + 35;
+        const x2 = xa + 35;
         const x3 = x2 + 35;
-        const x4 = x1 + this.minSize!.x;
 
-        const y2 = y1 + nest_h1;
+        const y2 = ya + nest_h1;
         const y3 = y2 + nest_h2 + this.innerBlocksHeight();
-        const y4 = y3 + nest_h3;
 
 
         this.drawOutline([
-            [x1, y1, null],
+            [xa, ya, null],
 
-            [x1, y4, null],
-            [x4, y4, null],
+            [xa, yb, null],
+            [xb, yb, null],
 
-            [x4, y3, null],
+            [xb, y3, null],
             [x2, y3, null],
 
             [x2, y2, null],
             [x3, y2, this.loopPort],
-            [x4, y2, null],
+            [xb, y2, null],
 
-            [x4, y1, null],
-            [x2, y1, this.topPort]
+            [xb, ya, null],
+            [x2, ya, this.topPort]
         ]);
+        
         const borderWidth = this.borderWidth;
         this.borderWidth = 0.5;
         this.drawOutline([
-            [x1, y1, null],
+            [xa, ya, null],
 
-            [x1, y4, null],
-            [x4, y4, null],
+            [xa, yb, null],
+            [xb, yb, null],
 
-            [x4, y3, null],
+            [xb, y3, null],
             [x2, y3, null],
 
             [x2, y2, null],
             [x3, y2, this.loopPort],
-            [x4, y2, null],
+            [xb, y2, null],
 
-            [x4, y1, null],
-            [x2, y1, this.topPort]
+            [xb, ya, null],
+            [x2, ya, this.topPort]
         ], "yellow");
         this.borderWidth = borderWidth;
     }

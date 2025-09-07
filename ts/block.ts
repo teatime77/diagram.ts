@@ -7,8 +7,10 @@ export const notchRadius = 10;
 
 export const nest_h1 = 35;
 export const nest_h2 = 30;
-export const nest_h3 = 35;
+export const nest_h3 = 35 + notchRadius;
 export const nest_h123 = nest_h1 + nest_h2 + nest_h3;
+
+export const inputHeight = 21;
 
 const blockLineColor = "brown";
 const nearPortDistance = 10;
@@ -203,6 +205,7 @@ export abstract class Block extends UI {
             this.ctx.globalAlpha = 0.5;
         }
 
+        this.ctx.fillStyle   = this.backgroundColor!;
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth   = this.borderWidth;
 
@@ -229,6 +232,7 @@ export abstract class Block extends UI {
         }
 
         this.ctx.closePath();
+        this.ctx.fill();
         this.ctx.stroke();
 
         if(this.ctx.globalAlpha != 1.0){
@@ -318,6 +322,40 @@ export abstract class Block extends UI {
     async run(){
         throw new MyError();
     }
+
+    drawDebug(){
+        const x = this.position.x;
+        const y = this.position.y;
+
+        this.ctx.save();
+        this.ctx.lineWidth = 1;
+
+        this.ctx.strokeStyle = "green";
+        this.ctx.strokeRect(x, y, this.boxSize.x, this.boxSize.y);
+
+        this.ctx.strokeStyle = "blue";
+        this.ctx.strokeRect(x, y, this.boxSize.x, this.boxSize.y);
+
+        {
+            const [xa, ya, xb, yb] = this.drawBox();
+            this.ctx.strokeStyle = "red";
+            this.ctx.strokeRect(xa, ya, xb - xa, yb - ya);
+        }
+
+        {
+            const [xa, ya, xb, yb] = this.borderCenterBox();
+            this.ctx.strokeStyle = "cyan";
+            this.ctx.strokeRect(xa, ya, xb - xa, yb - ya);
+        }
+
+        {
+            const [xa, ya, xb, yb] = this.borderInnerBox();
+            this.ctx.strokeStyle = "magenta";
+            this.ctx.strokeRect(xa, ya, xb - xa, yb - ya);
+        }
+
+        this.ctx.restore();
+    }
 }
 
 
@@ -344,6 +382,7 @@ export abstract class InputBlock extends Block {
         const [x1, y1, x2, y2] = this.borderInnerBox();
 
         const rect = this.input.getBoundingClientRect();
+        msg(`input h:${rect.height} ${this.input.type}`);
 
         const input_x = x1 + 0.5 * ((x2 - x1) - rect.width);
         const input_y = y1 + 0.5 * ((y2 - y1) - rect.height);
@@ -447,6 +486,7 @@ export class InputRangeBlock extends InputBlock {
         const height = yb - ya;
 
         const rc1 = this.input.getBoundingClientRect();
+        msg(`input h:${rc1.height} ${this.input.type}`);
         const rc2 = this.minInput.getBoundingClientRect();
 
         const x1 = xa + this.borderWidth + 2 * Port.radius;
@@ -509,6 +549,7 @@ export class ServoMotorBlock extends InputBlock {
         const [x1, y1, x2, y2] = this.borderInnerBox();
 
         const rect = this.input.getBoundingClientRect();
+        msg(`input h:${rect.height} ${this.input.type}`);
 
         const input_x = x1 + 10;
         const input_y = y1 + 0.5 * ((y2 - y1) - rect.height);
@@ -603,31 +644,41 @@ export class SetValueBlock extends InputTextBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 50);
+        const h = inputHeight + 2 * Port.radius + 2 * notchRadius + 3 * this.borderWidth;
+        this.minSize = new Vec2(200, h);
+    }
+
+    getInputPosition() : [number, number]{
+        const [x1, y1, x2, y2] = this.borderInnerBox();
+
+        const rect = this.input.getBoundingClientRect();
+        msg(`input h:${rect.height} ${this.input.type}`);
+
+        const input_x = x1 + 0.5 * ((x2 - x1) - rect.width);
+        const input_y = y1;
+
+        return [input_x, input_y];
     }
 
     draw(){
-        const [xa, ya, xb, yb] = this.drawBox();
-        const x1 = xa + this.borderWidth;
+        const [xa, ya, xb, yb] = this.borderInnerBox();
 
-        const x2 = x1 + 35;
-        const x3 = x1 + this.minSize!.x;
+        const x2 = xa + 35;
 
-        const y1 = ya + this.borderWidth;
-        const y2 = y1 + this.minSize!.y - notchRadius;
+        const y2 = yb - notchRadius;
 
         this.drawOutline([
-            [x1, y1, null],
+            [xa, ya, null],
 
-            [x1, y2, null],
+            [xa, y2, null],
             [x2, y2, this.ports[2]],
-            [x3, y2, null],
+            [xb, y2, null],
 
-            [x3, y1, null],
-            [x2, y1, this.ports[0]]
+            [xb, ya, null],
+            [x2, ya, this.ports[0]]
         ])
 
-        this.drawIOPorts(x1, x3, y1, y2);
+        this.drawIOPorts(xa, xb, ya, y2);
     }
 }
 
@@ -697,7 +748,8 @@ export class TTSBlock extends InputTextBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(300, 50);
+        // const h = inputHeight + 2 * notchRadius + 4 * this.borderWidth;
+        this.minSize = new Vec2(300, 60);
     }
 
     draw(): void {
@@ -724,7 +776,7 @@ export class SleepBlock extends InputTextBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 50);
+        this.minSize = new Vec2(200, 60);
     }
 
     draw(): void {
@@ -918,6 +970,11 @@ export class CalcBlock extends InputTextBlock {
         ];
     }
 
+    setMinSize() : void {
+        // const h = inputHeight + 2 * 2 * Port.radius + 4 * this.borderWidth;
+        this.minSize = new Vec2(200, 80);
+    }
+
     calc(){
         msg(`start calc: a:${this.ports[0].value}`);
         const expr = parseMath(this.input.value.trim()) as App;
@@ -947,6 +1004,9 @@ export class CompareBlock extends InputTextBlock {
         ];
 
         this.input.value = "a == a";
+    }
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 80);
     }
 
     calc() {
