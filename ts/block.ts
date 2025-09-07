@@ -476,22 +476,23 @@ export class InputRangeBlock extends InputBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 50);
+        this.minSize = new Vec2(200, 80);
     }
 
     setPosition(position : Vec2) : void {
         super.setPosition(position);
 
-        const [xa, ya, xb, yb] = this.drawBox();
+        const [xa, ya, xb, yb] = this.borderInnerBox();
         const height = yb - ya;
 
         const rc1 = this.input.getBoundingClientRect();
-        msg(`input h:${rc1.height} ${this.input.type}`);
         const rc2 = this.minInput.getBoundingClientRect();
 
+        const gap = (height - (rc1.height + rc2.height + 2 * Port.radius + this.borderWidth)) / 3;
+
         const x1 = xa + this.borderWidth + 2 * Port.radius;
-        const y1 = ya + 0.5 * (height - (rc1.height + rc2.height));
-        const y2 = y1 + rc1.height;
+        const y1 = ya + gap;
+        const y2 = y1 + rc1.height + gap;
 
         this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
