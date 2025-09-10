@@ -33,7 +33,6 @@ export class Port {
     destinations : Port[]  = [];
     sources : Port[]  = [];
     type : PortType;
-    pipes : Pipe[] = [];
     position : Vec2 = Vec2.zero();
 
     prevValue : any | undefined;
@@ -172,45 +171,10 @@ export class TextPort extends Port {
     }
 }
 
-class Joint {
-    drawJoint(canvas : Canvas){        
-    }
-}
-
-class Tube {
-
-    drawTube(canvas : Canvas){        
-    }
-}
-
-export class Pipe {
-    source! : Port;
-    destination! : Port;
-    tubes : Tube[] = [];
-    joints : Joint[] = [];
-
-    drawPipe(canvas : Canvas){        
-    }
-}
-
-export class Edge {
-}
-
-class Plot {    
-}
-
-export class Layer {
-}
-
-class Scheduler {
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     await asyncBodyOnLoad();
 });  
 
-//
-let main : Main;
 
 export class Main {
     static one : Main;
@@ -219,7 +183,6 @@ export class Main {
 
     constructor(){
         Main.one = this;
-        // Get the canvas element
 
         this.editor = new Editor({});
 
@@ -468,7 +431,7 @@ export async function asyncBodyOnLoad(){
     });
 
 
-    main = new Main();
+    new Main();
 
     await clearQueue();
 
