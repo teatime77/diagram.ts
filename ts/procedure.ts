@@ -1,6 +1,6 @@
 namespace diagram_ts {
 //
-export abstract class NestBlock extends Block {
+export abstract class NestBlock extends ActionBlock {
     innerBlock() : Block | undefined {
         let port : Port;
 
@@ -57,8 +57,6 @@ export abstract class NestBlock extends Block {
 }
 
 export class IfBlock extends NestBlock {   
-    topPort       = new Port(this, PortType.top);
-    bottomPort    = new Port(this, PortType.bottom);
     truePort      = new Port(this, PortType.bottom);
 
     conditionPort = new Port(this, PortType.inputPort);
@@ -133,7 +131,6 @@ export class IfBlock extends NestBlock {
 }
 
 export class InfiniteLoop extends NestBlock {
-    topPort  = new Port(this, PortType.top);
     loopPort = new Port(this, PortType.bottom);
 
     constructor(data : Attr){

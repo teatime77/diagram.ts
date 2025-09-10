@@ -152,8 +152,27 @@ export class Port {
     }
 }
 
-class Joint {
+export class NumberPort extends Port {
+    numberValue() : number {
+        if(typeof this.value == "number"){
+            return this.value;
+        }
 
+        throw new MyError();
+    }
+}
+
+export class TextPort extends Port {
+    stringValue() : string {
+        if(typeof this.value == "string"){
+            return this.value;
+        }
+
+        throw new MyError();
+    }
+}
+
+class Joint {
     drawJoint(canvas : Canvas){        
     }
 }
@@ -225,6 +244,10 @@ export class Main {
                     $vlist({
                         column : "100%",
                         children : [
+                            new InputTextBlock({ inToolbox : true })
+                            ,
+                            new InputNumberBlock({ inToolbox : true })
+                            ,
                             new IfBlock({ inToolbox : true })
                             ,
                             new InfiniteLoop({ inToolbox : true })
@@ -396,6 +419,10 @@ async function startProcedures() {
     isRunning = true;
     stopFlag = false;
 
+    const input_blocks = Main.one.editor.blocks.filter(x => x instanceof InputBlock);
+    input_blocks.forEach(x => x.updatePort());
+
+
     const top_blocks = getTopProcedures();
     for(const top_block of top_blocks){
         msg(`top proc:${top_block.constructor.name}`);
@@ -449,66 +476,5 @@ export async function asyncBodyOnLoad(){
         await periodicTask();
     }
 }
-
-
-// export class Node {
-// }
-
-/*
-ダイアグラム
-・フローチャート
-・データフロー
-・回路図
-・UI画面
-・UML
-    ・シーケンス図
-    ・クラス図
-    ・アクティビティ図
-    ・コンポーネント図
-    ・状態遷移図
-    ・タイミング図
-    ・
-・
-・
-・
-・
-
-コンポーネント
-・実行
-    ・if/else
-    ・while
-    ・代入
-    ・ストリーム
-        ・通信
-            ・プロセス間
-            ・ソケット
-                ・TCP
-                ・UDP
-        ・バッファ付き
-    ・sleep
-    ・wait until
-    ・call function
-    ・ブロック
-        ・関数定義
-        ・デバイス
-
-
-実行モード
-・編集
-・エミュレーション
-・実機デバッグ
-
-スケジューリング
-・即時に再実行
-・Tick時に再実行
-
-・入力されたら
-・値が変化したら
-
-・１つでも入力されたら
-・全部入力されたら
-
-*/
-
 
 }

@@ -87,6 +87,10 @@ export abstract class Block extends UI {
         return this.minSize!.y;
     }
 
+    dependentPorts() : Port[] {
+        return [];
+    }
+
     nextBlock() : Block | undefined {
         let bottom_port : Port | undefined;
         
@@ -297,6 +301,8 @@ export abstract class Block extends UI {
             [x2_, y1, null],
             [x2, y1, this.ports[0]]
         ]);
+
+        this.drawIOPorts(x1, x2_, y1, y2_);
     }
 
     canConnectNearPortPair(block : Block) : Port[] {
@@ -313,6 +319,18 @@ export abstract class Block extends UI {
 
     async valueChanged(){
         msg(`changed : ${this.constructor.name}`);
+    }
+
+    makeInputValueMap() : Map<string, number> {
+        const map = new Map<string, number>();
+        for(const port of this.ports){
+            if(port.type == PortType.inputPort){
+                assert(port.name != "" && typeof port.value === 'number' && ! isNaN(port.value));
+                map.set(port.name, port.value);
+            }
+        }
+
+        return map;
     }
 
     calc(){
@@ -358,11 +376,28 @@ export abstract class Block extends UI {
     }
 }
 
+export abstract class ActionBlock extends Block {
+    topPort       = new Port(this, PortType.top);
+    bottomPort    = new Port(this, PortType.bottom);
+
+    constructor(data : Attr){
+        super(data);
+
+        this.ports = [ 
+            this.topPort, 
+            this.bottomPort 
+        ];
+    }
+}
+
+export abstract class FunctionBlock extends Block {
+}
 
 
-
-export abstract class InputBlock extends Block {
+export abstract class InputBlock extends FunctionBlock {
     input : HTMLInputElement;
+
+    abstract updatePort() : void;
 
     constructor(data : Attr){
         super(data);
@@ -371,6 +406,19 @@ export abstract class InputBlock extends Block {
         this.input.style.position = "absolute";
 
         document.body.appendChild(this.input);
+    }
+
+    makeObj() : any {
+        let obj = Object.assign(super.makeObj(), {
+            text : this.input.value
+        });
+
+        return obj;
+    }
+
+    loadObj(obj : any ){        
+        super.loadObj(obj);
+        this.input.value = obj.text;
     }
 
     clearBlock(): void {
@@ -397,6 +445,10 @@ export abstract class InputBlock extends Block {
 
         this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
+    }
+
+    draw(){
+        this.drawDataflowBlock();
     }
 }
 
@@ -429,10 +481,7 @@ export class InputRangeBlock extends InputBlock {
         document.body.appendChild(this.maxInput);
 
         this.input.addEventListener("input", async (ev : Event) => {
-            const value = parseFloat(this.input.value);
-            for(const src of this.ports){
-                src.setPortValue(value);
-            }
+            this.updatePort();
             
             Canvas.one.requestUpdateCanvas();
         });
@@ -475,6 +524,13 @@ export class InputRangeBlock extends InputBlock {
         this.maxInput.value = `${obj.max}`;
     }
 
+    updatePort() : void {        
+        const value = parseFloat(this.input.value);
+        for(const src of this.ports){
+            src.setPortValue(value);
+        }
+    }
+
     setMinSize() : void {
         this.minSize = new Vec2(200, 80);
     }
@@ -510,21 +566,23 @@ export class InputRangeBlock extends InputBlock {
 }
 
 
-export class ServoMotorBlock extends InputBlock {
+export class ServoMotorBlock extends FunctionBlock {
+    inputPort = new NumberPort(this, PortType.inputPort);
+    input : HTMLInputElement;
+
     constructor(data : Attr){
         super(data);
-
+        
+        this.ports.push(this.inputPort);
+        this.input = document.createElement("input");
         this.input.type = "number";
         this.input.style.width = "45px";
         this.input.value = "0";
         this.input.min   = "0";
         this.input.max   = "15";
+        this.input.style.position = "absolute";
 
-        this.input.addEventListener("input", (ev : Event) => {
-            msg(`change : [${this.input.value}]`);
-        });
-
-        this.ports = [ new Port(this, PortType.inputPort) ];
+        document.body.appendChild(this.input);
     }
 
     makeObj() : any {
@@ -586,15 +644,55 @@ export class ServoMotorBlock extends InputBlock {
 }
 
 
-abstract class InputTextBlock extends InputBlock {
+export class InputTextBlock extends InputBlock {
+    textPort : TextPort;
+
     constructor(data : Attr){
         super(data);
         this.input.type = "text";
+
+        this.textPort = new TextPort(this, PortType.outputPort);
+        this.ports    = [ this.textPort ];
+
+        this.input.addEventListener("input", async (ev : Event) => {
+            this.updatePort();
+            
+            Canvas.one.requestUpdateCanvas();
+        });
+    }
+
+    updatePort() : void {        
+        this.textPort.setPortValue(this.input.value);
+    }
+
+    setMinSize() : void {
+        this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
+    }
+}
+
+export class InputNumberBlock extends InputBlock {
+    numberPort : NumberPort;
+
+    constructor(data : Attr){
+        super(data);
+        this.input.type = "number";
+        this.input.value = "0";
+
+        this.numberPort = new NumberPort(this, PortType.outputPort);
+        this.numberPort.setPortValue(this.input.valueAsNumber);
+
+        this.ports    = [ this.numberPort ];
+
+        this.input.addEventListener("input", async (ev : Event) => {
+            this.updatePort();
+            
+            Canvas.one.requestUpdateCanvas();
+        });
     }
 
     makeObj() : any {
         let obj = Object.assign(super.makeObj(), {
-            text : this.input.value
+            value : this.input.valueAsNumber
         });
 
         return obj;
@@ -602,27 +700,15 @@ abstract class InputTextBlock extends InputBlock {
 
     loadObj(obj : any ){        
         super.loadObj(obj);
-        this.input.value = obj.text;
+        this.input.value = obj.value;
+    }
+
+    updatePort() : void {        
+        this.numberPort.setPortValue(this.input.valueAsNumber);
     }
 
     setMinSize() : void {
-            this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
-    }
-
-    draw(){
-        this.drawDataflowBlock();
-    }
-
-    makeInputValueMap() : Map<string, number> {
-        const map = new Map<string, number>();
-        for(const port of this.ports){
-            if(port.type == PortType.inputPort){
-                assert(port.name != "" && typeof port.value === 'number' && ! isNaN(port.value));
-                map.set(port.name, port.value);
-            }
-        }
-
-        return map;
+        this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
 }
 
@@ -732,17 +818,13 @@ export class CameraBlock extends Block {
     }
 }
 
-export class TTSBlock extends InputTextBlock {
+export class TTSBlock extends ActionBlock {
+    inputPort = new TextPort(this, PortType.inputPort);
     speech : Speech;
 
     constructor(data : Attr){
         super(data);
-        this.ports = [ 
-            new Port(this, PortType.top), 
-            new Port(this, PortType.bottom) 
-        ];
-
-        this.input.value = "こんにちは!どうぞよろしく!";
+        this.ports.push(this.inputPort);
 
         i18n_ts.setVoiceLanguageCode("jpn");
         this.speech = new Speech();
@@ -759,21 +841,18 @@ export class TTSBlock extends InputTextBlock {
     }
 
     async run(){
-        await this.speech.speak_waitEnd(this.input.value.trim());
+        const text = this.inputPort.stringValue().trim();
+        await this.speech.speak_waitEnd(text);
     }
 }
 
 
-export class SleepBlock extends InputTextBlock {
+export class SleepBlock extends ActionBlock {
+    inputPort = new NumberPort(this, PortType.inputPort);
+
     constructor(data : Attr){
         super(data);
-        this.ports = [ 
-            new Port(this, PortType.top), 
-            new Port(this, PortType.bottom) 
-        ];
-
-        this.input.value = "3";
-        this.input.style.width = "45px";
+        this.ports.push(this.inputPort);
     }
 
     setMinSize() : void {
@@ -786,7 +865,7 @@ export class SleepBlock extends InputTextBlock {
     }
 
     async run(){
-        const second = parseFloat(this.input.value.trim());
+        const second = this.inputPort.numberValue();
         await sleep(second * 1000);
     }
 }
@@ -1045,6 +1124,8 @@ export class CompareBlock extends InputTextBlock {
 }
 export function makeBlockByTypeName(typeName : string) : Block {
     switch(typeName){
+    case InputTextBlock.name:                return new InputTextBlock({});
+    case InputNumberBlock.name:              return new InputNumberBlock({});
     case IfBlock.name:                       return new IfBlock({});
     case CompareBlock.name:                  return new CompareBlock({});
     case InfiniteLoop.name:                  return new InfiniteLoop({});
