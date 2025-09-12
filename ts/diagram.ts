@@ -388,6 +388,9 @@ export async function asyncBodyOnLoad(){
     ttsIcon    = document.getElementById("tts-icon") as HTMLImageElement;
     sleepIcon    = document.getElementById("sleep-icon") as HTMLImageElement;
     
+    $("clear-btn").addEventListener("click", (ev : MouseEvent)=>{
+        Main.one.editor.clearBlock();
+    });
 
     startButton = $("start-btn") as HTMLButtonElement;
     startButton.addEventListener("click", async(ev : MouseEvent)=>{
