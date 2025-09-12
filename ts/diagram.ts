@@ -184,66 +184,41 @@ export class Main {
     constructor(){
         Main.one = this;
 
-        this.editor = new Editor({});
+        const tools : Block[] = [
+            new InputTextBlock({ inToolbox : true })
+            ,
+            new InputNumberBlock({ inToolbox : true })
+            ,
+            new IfBlock({ inToolbox : true })
+            ,
+            new InfiniteLoop({ inToolbox : true })
+            ,
+            new CompareBlock({ inToolbox : true })
+            ,
+            new InputRangeBlock({ inToolbox : true })
+            ,
+            new ServoMotorBlock({ inToolbox : true })
+            ,                            
+            new SetValueBlock({ inToolbox : true })
+            ,
+            new CameraBlock({ inToolbox : true })
+            ,
+            new FaceDetectionBlock({ inToolbox : true })
+            ,
+            new CalcBlock({ inToolbox : true })
+            ,
+            new UltrasonicDistanceSensorBlock({ inToolbox : true })
+            ,
+            new TTSBlock({ inToolbox : true })
+            ,
+            new SleepBlock({ inToolbox : true })
+        ];
 
-        const root = $grid({
-            rows : "60px 100%",        
-            columns : "10px 25% 75%",
-            cells : [
-                // [
-                //     $filler({
-                //         colspan : 3,
-                //         backgroundColor : "cornsilk"
-                //     })
-                // ]
-                // ,
-                [
-                    $filler({ colspan : 3 })
-                ]
-                ,
-                [
-                    $filler({})
-                    ,
-                    $vlist({
-                        column : "100%",
-                        children : [
-                            new InputTextBlock({ inToolbox : true })
-                            ,
-                            new InputNumberBlock({ inToolbox : true })
-                            ,
-                            new IfBlock({ inToolbox : true })
-                            ,
-                            new InfiniteLoop({ inToolbox : true })
-                            ,
-                            new CompareBlock({ inToolbox : true })
-                            ,
-                            new InputRangeBlock({ inToolbox : true })
-                            ,
-                            new ServoMotorBlock({ inToolbox : true })
-                            ,                            
-                            new SetValueBlock({ inToolbox : true })
-                            ,
-                            new CameraBlock({ inToolbox : true })
-                            ,
-                            new FaceDetectionBlock({ inToolbox : true })
-                            ,
-                            new CalcBlock({ inToolbox : true })
-                            ,
-                            new UltrasonicDistanceSensorBlock({ inToolbox : true })
-                            ,
-                            new TTSBlock({ inToolbox : true })
-                            ,
-                            new SleepBlock({ inToolbox : true })
-                        ]
-                    })
-                    ,
-                    this.editor
-                ]
-            ]
-        });
+
+        this.editor = new Editor({ blocks : tools });
 
         const canvas_html = document.getElementById('world') as HTMLCanvasElement;
-        this.canvas = new Canvas(canvas_html, root)
+        this.canvas = new Canvas(canvas_html, this.editor);
 
         // Initial resize when the page loads
         // Use DOMContentLoaded to ensure the canvas element exists before trying to access it

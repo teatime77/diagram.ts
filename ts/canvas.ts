@@ -9,7 +9,7 @@ export class Canvas {
 
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
-    root   : Grid;
+    root   : UI;
     draggedUI? : Block | Port | Button;
     nearPorts : Port[] = [];
     pointerId : number = NaN;
@@ -20,7 +20,7 @@ export class Canvas {
 
     moved : boolean = false;
 
-    constructor(canvas_html : HTMLCanvasElement, root : Grid){
+    constructor(canvas_html : HTMLCanvasElement, root : UI){
         Canvas.one = this;
         this.canvas = canvas_html;
         this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
