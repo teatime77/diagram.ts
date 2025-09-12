@@ -9,7 +9,6 @@ export class Canvas {
 
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
-    root   : UI;
     draggedUI? : Block | Port | Button;
     nearPorts : Port[] = [];
     pointerId : number = NaN;
@@ -20,7 +19,7 @@ export class Canvas {
 
     moved : boolean = false;
 
-    constructor(canvas_html : HTMLCanvasElement, root : UI){
+    constructor(canvas_html : HTMLCanvasElement){
         Canvas.one = this;
         this.canvas = canvas_html;
         this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
@@ -28,9 +27,7 @@ export class Canvas {
             console.error("Canvas context not supported!");
         }
 
-        this.root = root;
-
-        setContext2D(this.ctx, this.root);
+        setContext2D(this.ctx, Editor.one);
 
         this.canvas.addEventListener("pointerdown",  this.pointerdown.bind(this));
         this.canvas.addEventListener("pointermove",  this.pointermove.bind(this));
@@ -61,7 +58,7 @@ export class Canvas {
         this.moved = false;
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.root.getUIPortFromPosition(pos);
+        const target = Editor.one.getUIPortFromPosition(pos);
         if(target != undefined){
             msg(`down:${target.constructor.name}`);
             this.downPos   = pos;
@@ -69,7 +66,7 @@ export class Canvas {
 
             if(target instanceof Block){
                 if(target instanceof InputRangeBlock){
-                    msg(`range: box${target.boxSize.x.toFixed()} out:${target.minSize!.x}`);
+                    msg(`range: box${target.boxSize.x.toFixed()} out:${target.boxSize!.x}`);
                 }
 
                 if(target.inToolbox){
@@ -129,7 +126,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.root.getUIPortFromPosition(pos);
+        const target = Editor.one.getUIPortFromPosition(pos);
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
 
         this.movePos = pos;
@@ -162,7 +159,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = this.root.getUIPortFromPosition(pos);
+        const target = Editor.one.getUIPortFromPosition(pos);
 
         if(this.moved){
             msg("dragged");
@@ -207,8 +204,8 @@ export class Canvas {
     }
 
     layoutRoot(){
-        this.root.setMinSize();
-        this.root.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
+        Editor.one.setMinSize();
+        Editor.one.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
     }
 
     resizeCanvas() {
@@ -229,7 +226,7 @@ export class Canvas {
         }
 
         this.layoutRoot();
-        this.root.dump(0);
+        Editor.one.dump(0);
 
         this.requestUpdateCanvas();
     }
@@ -240,11 +237,11 @@ export class Canvas {
 
     repaint(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
-        this.root.draw();
+        Editor.one.draw();
         if(this.draggedUI instanceof Port){
             this.drawDraggedPort(this.draggedUI);
         }
-        this.root.getAllUI().filter(x => x instanceof Block).forEach(x => x.drawDebug());
+        Editor.one.getAllUI().filter(x => x instanceof Block).forEach(x => x.drawDebug());
         // msg("repaint");
         repaintCount++;
     }

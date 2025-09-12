@@ -1,18 +1,25 @@
 namespace diagram_ts {
 //
-export abstract class NestBlock extends ActionBlock {
-    innerBlock() : Block | undefined {
-        let port : Port;
 
+const nest_h1 = 35;
+const nest_h2 = 30;
+const nest_h3 = 10;
+
+export abstract class NestBlock extends ActionBlock {
+    innerPort() : Port {
         if(this instanceof IfBlock){
-            port = this.truePort;
+            return this.truePort;
         }
         else if(this instanceof InfiniteLoop){
-            port = this.loopPort;
+            return this.loopPort;
         }
         else{
             throw new MyError();
         }
+    }
+
+    innerBlock() : Block | undefined {
+        const port = this.innerPort();
 
         assert(port.type == PortType.bottom);
 
@@ -42,17 +49,32 @@ export abstract class NestBlock extends ActionBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, nest_h123);
-
         for(let block = this.innerBlock(); block != undefined; block = block.nextBlock()){
             block.setMinSize();
         }
 
-        this.minSize.y += this.innerBlocksHeight();
+        this.boxSize = new Vec2(150, this.calcHeight());
     }
 
     calcHeight() : number {
-        return nest_h123 + this.innerBlocksHeight();
+        let height : number;
+
+        if(this instanceof IfBlock){
+            height = nest_h1 + nest_h2 + nest_h3 + notchRadius;
+        }
+        else if(this instanceof InfiniteLoop){
+            height = nest_h1 + nest_h2 + nest_h3;            
+        }
+        else{
+            throw new MyError();
+        }
+
+        msg(`height:${this.constructor.name} ${height + this.innerBlocksHeight()} = ${height} + ${this.innerBlocksHeight()}`)
+        return height + this.innerBlocksHeight();
+    }
+
+    dependentPorts() : Port[] {
+        return [ this.innerPort(), this.bottomPort ];
     }
 }
 
@@ -86,7 +108,7 @@ export class IfBlock extends NestBlock {
         const x3 = x2 + 35;
 
         const y2 = ya + nest_h1;
-        const y3 = y2 + nest_h2 + this.innerBlocksHeight();
+        const y3 = yb - notchRadius - nest_h3;
         const y4 = yb - notchRadius;
 
 
@@ -152,7 +174,7 @@ export class InfiniteLoop extends NestBlock {
         const x3 = x2 + 35;
 
         const y2 = ya + nest_h1;
-        const y3 = y2 + nest_h2 + this.innerBlocksHeight();
+        const y3 = yb - nest_h3;
 
 
         this.drawOutline([

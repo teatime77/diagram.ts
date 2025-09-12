@@ -129,7 +129,6 @@ function loadJson(objs:any[]){
         block.position.x = obj.x;
         block.position.y = obj.y;
         block.setMinSize();
-        block.boxSize = block.minSize!.copy();
 
         block_map.set(block.idx, block);
 
@@ -159,7 +158,6 @@ function loadJson(objs:any[]){
         }
     }
 
-    const canvas = Main.one.canvas;
-    setContext2D(canvas.ctx, canvas.root);
+    setContext2D(Canvas.one.ctx, Editor.one);
 }
 }

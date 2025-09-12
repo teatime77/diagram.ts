@@ -4,12 +4,6 @@
 namespace diagram_ts {
 //
 export const notchRadius = 10;        
-
-export const nest_h1 = 35;
-export const nest_h2 = 30;
-export const nest_h3 = 35 + notchRadius;
-export const nest_h123 = nest_h1 + nest_h2 + nest_h3;
-
 export const inputHeight = 21;
 
 const blockLineColor = "brown";
@@ -60,7 +54,6 @@ export abstract class Block extends UI {
         block.ctx      = this.ctx;
 
         block.setMinSize();
-        block.boxSize = block.minSize!.copy();
 
         return block;
     }
@@ -84,11 +77,7 @@ export abstract class Block extends UI {
     abstract setMinSize() : void;
 
     calcHeight() : number {
-        return this.minSize!.y;
-    }
-
-    dependentPorts() : Port[] {
-        return [];
+        return this.boxSize!.y;
     }
 
     nextBlock() : Block | undefined {
@@ -109,10 +98,6 @@ export abstract class Block extends UI {
         }
 
         return undefined;
-    }
-
-    isProcedure() : boolean {
-        return this instanceof NestBlock || this instanceof TTSBlock || this instanceof SleepBlock;
     }
 
     getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
@@ -182,7 +167,9 @@ export abstract class Block extends UI {
         }
         port1.connect(port2);
 
+        Canvas.one.layoutRoot();
         msg(`connect block`);
+
     }
 
     drawNotch(cx : number, cy : number, type : PortType){
@@ -388,6 +375,20 @@ export abstract class ActionBlock extends Block {
             this.bottomPort 
         ];
     }
+
+    dependentPorts() : Port[] {
+        return [ this.bottomPort ];
+    }
+
+    *dependantActions(){
+        for(const src_port of this.dependentPorts()){
+            for(const dst_port of src_port.destinations){
+                yield dst_port.parent as ActionBlock;
+            }
+        }
+
+        yield this;
+    }
 }
 
 export abstract class FunctionBlock extends Block {
@@ -532,7 +533,7 @@ export class InputRangeBlock extends InputBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 80);
+        this.boxSize = new Vec2(200, 80);
     }
 
     setPosition(position : Vec2) : void {
@@ -599,7 +600,7 @@ export class ServoMotorBlock extends FunctionBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 50);
+        this.boxSize = new Vec2(200, 50);
     }
 
     setPosition(position : Vec2) : void {
@@ -666,7 +667,7 @@ export class InputTextBlock extends InputBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
+        this.boxSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
 }
 
@@ -708,7 +709,7 @@ export class InputNumberBlock extends InputBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
+        this.boxSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
 }
 
@@ -732,7 +733,7 @@ export class SetValueBlock extends InputTextBlock {
 
     setMinSize() : void {
         const h = inputHeight + 2 * Port.radius + 2 * notchRadius + 3 * this.borderWidth;
-        this.minSize = new Vec2(200, h);
+        this.boxSize = new Vec2(200, h);
     }
 
     getInputPosition() : [number, number]{
@@ -780,11 +781,11 @@ export class CameraBlock extends Block {
     setMinSize() : void {
         if(this.inToolbox){
 
-            this.minSize = new Vec2(320, 50 + 2 * notchRadius);
+            this.boxSize = new Vec2(320, 50 + 2 * notchRadius);
         }
         else{
 
-            this.minSize = new Vec2(320, 240 + 2 * notchRadius);
+            this.boxSize = new Vec2(320, 240 + 2 * notchRadius);
         }
     }
 
@@ -832,7 +833,7 @@ export class TTSBlock extends ActionBlock {
 
     setMinSize() : void {
         // const h = inputHeight + 2 * notchRadius + 4 * this.borderWidth;
-        this.minSize = new Vec2(300, 60);
+        this.boxSize = new Vec2(300, 60);
     }
 
     draw(): void {
@@ -856,7 +857,7 @@ export class SleepBlock extends ActionBlock {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(200, 60);
+        this.boxSize = new Vec2(200, 60);
     }
 
     draw(): void {
@@ -881,11 +882,11 @@ export class FaceDetectionBlock extends Block {
     setMinSize() : void {
         if(this.inToolbox){
 
-            this.minSize = new Vec2(150, 10 + 2 * 2 * notchRadius);
+            this.boxSize = new Vec2(150, 10 + 2 * 2 * notchRadius);
         }
         else{
 
-            this.minSize = new Vec2(320, 240 + 2 * 2 * notchRadius);
+            this.boxSize = new Vec2(320, 240 + 2 * 2 * notchRadius);
         }
     }
 
@@ -965,7 +966,7 @@ export class JoyStickBlock extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(150, 50);
+        this.boxSize = new Vec2(150, 50);
     }
 }
 
@@ -978,7 +979,7 @@ export class UltrasonicDistanceSensorBlock extends Block {
     }
 
     setMinSize() : void {
-        this.minSize = new Vec2(300, 50);
+        this.boxSize = new Vec2(300, 50);
     }
 
     setDistance(distance : number){
@@ -1052,7 +1053,7 @@ export class CalcBlock extends InputTextBlock {
 
     setMinSize() : void {
         // const h = inputHeight + 2 * 2 * Port.radius + 4 * this.borderWidth;
-        this.minSize = new Vec2(200, 80);
+        this.boxSize = new Vec2(200, 80);
     }
 
     calc(){
@@ -1086,7 +1087,7 @@ export class CompareBlock extends InputTextBlock {
         this.input.value = "a == a";
     }
     setMinSize() : void {
-        this.minSize = new Vec2(200, 80);
+        this.boxSize = new Vec2(200, 80);
     }
 
     calc() {

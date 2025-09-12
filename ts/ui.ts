@@ -77,7 +77,6 @@ export abstract class UI {
     boxSize  : Vec2 = Vec2.zero();
     width? : string;
     height? : string;
-    minSize : Vec2 | undefined;
     colspan : number = 1;
     rowspan : number = 1;
     margin : number[] = [ 4, 4, 4, 4 ];     // left, right, top, bottom
@@ -128,18 +127,18 @@ export abstract class UI {
     }
 
     setMinSize() : void {
-        this.minSize = Vec2.zero();
+        this.boxSize = Vec2.zero();
         msg(`set-min-size:${this.constructor.name}`);
     }
 
     getMinWidth() : number {       
-        assert(this.minSize != undefined);
-        return this.minSize!.x;
+        assert(this.boxSize != undefined);
+        return this.boxSize!.x;
     }
 
     getMinHeight() : number {
-        assert(this.minSize != undefined);
-        return this.minSize!.y;
+        assert(this.boxSize != undefined);
+        return this.boxSize!.y;
     }
 
     setPosition(position : Vec2) : void {
@@ -205,13 +204,13 @@ export abstract class UI {
     }
 
     str() : string {
-        if(this.minSize == undefined){
+        if(this.boxSize == undefined){
             throw new MyError();
         }
 
         const width  = (this.width  != undefined ? `width:${this.width} `  : "");
         const height = (this.height != undefined ? `height:${this.height} ` : "");
-        const minSize = (this.minSize!= undefined ? `min-size:${this.minSize.x.toFixed()}, ${this.minSize.y.toFixed()} ` : "");
+        const minSize = (this.boxSize!= undefined ? `min-size:${this.boxSize.x.toFixed()}, ${this.boxSize.y.toFixed()} ` : "");
         const position = `pos:(${this.position.x},${this.position.y}) `;
         const boxSize = `box:(${this.boxSize.x},${this.boxSize.y}) `;
 
@@ -284,7 +283,7 @@ export class TextUI extends UI {
         const width  = this.metrics.width + this.marginBorderPaddingWidth() + TextSizeFill;
         const height = this.actualHeight  + this.marginBorderPaddingHeight() + TextSizeFill;
 
-        this.minSize = new Vec2(width, height);
+        this.boxSize = new Vec2(width, height);
     }
 
     draw(){
@@ -326,11 +325,13 @@ export abstract class Node extends UI {
 }
 
 export class Editor extends UI {
+    static one : Editor;
     tools  : Block[];
     blocks : Block[] = [];
 
     constructor(data : Attr & { blocks : Block[] }){
         super(data);
+        Editor.one = this;
 
         this.tools = data.blocks.slice();
 
@@ -339,9 +340,9 @@ export class Editor extends UI {
         for(const block of this.tools){
             block.setMinSize();
 
-            block.layout(x, y, block.minSize!, 1);
+            block.layout(x, y, block.boxSize!, 1);
 
-            y += block.minSize!.y;
+            y += block.boxSize!.y + 10;
         }
     }
 
@@ -356,6 +357,19 @@ export class Editor extends UI {
 
     addBlock(block : Block){
         this.blocks.push(block);
+    }
+
+    setMinSize() : void {
+        this.tools.forEach(x => x.setMinSize());
+
+        const top_actions = getTopActions();
+        for(const top_action of top_actions){
+            for(const block of top_action.dependantActions()){
+                block.setMinSize();
+            }
+        }
+
+        this.boxSize = new Vec2(Canvas.one.canvas.width, Canvas.one.canvas.height);
     }
 
     draw(){

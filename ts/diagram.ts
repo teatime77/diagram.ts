@@ -218,7 +218,7 @@ export class Main {
         this.editor = new Editor({ blocks : tools });
 
         const canvas_html = document.getElementById('world') as HTMLCanvasElement;
-        this.canvas = new Canvas(canvas_html, this.editor);
+        this.canvas = new Canvas(canvas_html);
 
         // Initial resize when the page loads
         // Use DOMContentLoaded to ensure the canvas element exists before trying to access it
@@ -301,7 +301,7 @@ async function periodicTask() {
     if(queue != null){
 
         const json_str = JSON.stringify(result, null, 2);
-        msg(`status:${json_str}`);
+        // msg(`status:${json_str}`);
 
         const image_file_name = queue["image_file_name"];
         if(image_file_name != undefined){
@@ -326,11 +326,11 @@ async function periodicTask() {
     setTimeout(periodicTask, 100);
 }
 
-function getTopProcedures() : Block[] {
-    const procedure_blocks = Main.one.editor.blocks.filter(x => x.isProcedure()) as Block[];
+export function getTopActions() : ActionBlock[] {
+    const action_blocks = Main.one.editor.blocks.filter(x => x instanceof ActionBlock);
 
-    const top_blocks : Block[] = [];
-    for(const block of procedure_blocks){
+    const top_blocks : ActionBlock[] = [];
+    for(const block of action_blocks){
         const top_port = block.ports.find(x => x.type == PortType.top)!;
         assert(top_port != undefined);
         if(top_port.sources.length == 0){
@@ -361,7 +361,7 @@ async function startProcedures() {
     input_blocks.forEach(x => x.updatePort());
 
 
-    const top_blocks = getTopProcedures();
+    const top_blocks = getTopActions();
     for(const top_block of top_blocks){
         msg(`top proc:${top_block.constructor.name}`);
         await runBlockChain(top_block);
