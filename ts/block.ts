@@ -80,26 +80,6 @@ export abstract class Block extends UI {
         return this.boxSize!.y;
     }
 
-    nextBlock() : Block | undefined {
-        let bottom_port : Port | undefined;
-        
-        if(this instanceof IfBlock){
-            bottom_port = this.bottomPort;
-        }
-        else if(this instanceof InfiniteLoop){            
-        }
-        else{
-            bottom_port = this.ports.find(x => x.type == PortType.bottom);
-        }
-        
-        if(bottom_port != undefined && bottom_port.destinations.length != 0){
-            const dest_port = bottom_port.destinations[0];
-            return dest_port.parent;
-        }
-
-        return undefined;
-    }
-
     getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
         const port = this.getPortFromPosition(pos);
         if(port != undefined){
@@ -111,7 +91,7 @@ export abstract class Block extends UI {
             return target;
         }
 
-        const [xa, ya, xb, yb] = this.drawBox();
+        const [xa, ya, xb, yb] = this.marginBox();
 
         if(xa <= pos.x && pos.x < xb){
             if(ya <= pos.y && pos.y < yb){
@@ -342,7 +322,7 @@ export abstract class Block extends UI {
         this.ctx.strokeRect(x, y, this.boxSize.x, this.boxSize.y);
 
         {
-            const [xa, ya, xb, yb] = this.drawBox();
+            const [xa, ya, xb, yb] = this.marginBox();
             this.ctx.strokeStyle = "red";
             this.ctx.strokeRect(xa, ya, xb - xa, yb - ya);
         }
@@ -388,6 +368,15 @@ export abstract class ActionBlock extends Block {
         }
 
         yield this;
+    }
+
+    nextBlock() : ActionBlock | undefined {        
+        if(this.bottomPort.destinations.length != 0){
+            const dest_port = this.bottomPort.destinations[0];
+            return dest_port.parent as ActionBlock;
+        }
+
+        return undefined;
     }
 }
 

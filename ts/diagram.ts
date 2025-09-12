@@ -341,8 +341,8 @@ export function getTopActions() : ActionBlock[] {
     return top_blocks;
 }
 
-export async function runBlockChain(top_block : Block){
-    for(let block : Block | undefined = top_block; block != undefined; block = block.nextBlock()){
+export async function runBlockChain(top_block : ActionBlock){
+    for(let block : ActionBlock | undefined = top_block; block != undefined; block = block.nextBlock()){
         await block.run();
 
         if(stopFlag){

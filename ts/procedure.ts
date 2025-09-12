@@ -18,7 +18,7 @@ export abstract class NestBlock extends ActionBlock {
         }
     }
 
-    innerBlock() : Block | undefined {
+    innerBlock() : ActionBlock | undefined {
         const port = this.innerPort();
 
         assert(port.type == PortType.bottom);
@@ -27,19 +27,27 @@ export abstract class NestBlock extends ActionBlock {
             return undefined;
         }
         else{
-            return port.destinations[0].parent;
+            return port.destinations[0].parent as ActionBlock;
         }
     }
 
     innerBlocksHeight() : number {
         let height = 0;
 
-        for(let block = this.innerBlock(); block != undefined; block = block.nextBlock()){
-            if(height != 0){
-                height -= notchRadius;
-            }
+        for(let block = this.innerBlock(); block != undefined; ){
+            const next_block = block.nextBlock();
+            if(next_block == undefined){
 
-            height += block.calcHeight();
+                const [xa, ya, xb, yb] = block.borderInnerBox();
+                height += yb - ya;
+                break;
+            }
+            else{
+                const [xa, ya, xb, yb] = block.drawBox();
+                height += yb - ya;
+                
+                block = next_block;
+            }
         }
         if(height != 0){
             msg(`inner blocks id:${this.idx} h:${height}`);
@@ -97,7 +105,7 @@ export class IfBlock extends NestBlock {
         return this.conditionPort.value == 1;
     }
 
-    trueBlock() : Block | undefined {
+    trueBlock() : ActionBlock | undefined {
         return this.innerBlock();
     }
 
@@ -163,7 +171,7 @@ export class InfiniteLoop extends NestBlock {
         ];
     }
 
-    loopBlock() : Block | undefined {
+    loopBlock() : ActionBlock | undefined {
         return this.innerBlock();
     }
 

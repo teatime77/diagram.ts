@@ -150,7 +150,7 @@ export abstract class UI {
         this.setPosition(new Vec2(x, y));
     }
 
-    drawBox() : [number, number, number, number] {
+    marginBox() : [number, number, number, number] {
         const xa = this.position.x + this.margin[0];
         const ya = this.position.y + this.margin[2];
         const xb = xa + this.boxSize.x - this.marginWidth();
@@ -160,7 +160,7 @@ export abstract class UI {
     }
 
     borderCenterBox() : [number, number, number, number] {
-        const [xa, ya, xb, yb] = this.drawBox();
+        const [xa, ya, xb, yb] = this.marginBox();
 
         const x1 = xa + this.borderWidth / 2;
         const y1 = ya + this.borderWidth / 2;
@@ -173,7 +173,7 @@ export abstract class UI {
     }
 
     borderInnerBox() : [number, number, number, number] {
-        const [xa, ya, xb, yb] = this.drawBox();
+        const [xa, ya, xb, yb] = this.marginBox();
 
         const x1 = xa + this.borderWidth;
         const y1 = ya + this.borderWidth;
@@ -182,7 +182,17 @@ export abstract class UI {
         const y2 = yb - this.borderWidth;
 
         return [x1, y1, x2, y2];
+    }
 
+    drawBox() : [number, number, number, number] {
+        const [xa, ya, xb, yb] = this.borderInnerBox();
+
+        if(this instanceof ActionBlock && !(this instanceof InfiniteLoop)){
+            return [xa, ya, xb, yb - notchRadius];
+        }
+        else{
+            return [xa, ya, xb, yb];
+        }
     }
 
     getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
@@ -197,7 +207,7 @@ export abstract class UI {
     }
 
     draw(){
-        const [xa, ya, xb, yb] = this.drawBox();
+        const [xa, ya, xb, yb] = this.marginBox();
         const w = xb - xa;
         const h = yb - ya;
         this.drawRidgeRect(this.ctx, xa, ya, w, h, this.borderWidth);
