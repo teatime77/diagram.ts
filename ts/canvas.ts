@@ -3,6 +3,7 @@ namespace diagram_ts {
 export let repaintCount = 0;
 
 let animationFrameId : number | null = null;
+let checkSeperatedPorts : boolean = false;
 
 export class Canvas {
     static one : Canvas;
@@ -199,6 +200,8 @@ export class Canvas {
                     this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
                 }
             }
+
+            checkSeperatedPorts = true;
         }
         else{
             msg(`click:${this.draggedUI.constructor.name}`);
@@ -219,7 +222,6 @@ export class Canvas {
         this.requestUpdateCanvas();
 
         this.moved = false;
-
     }
 
     layoutRoot(){
@@ -262,6 +264,12 @@ export class Canvas {
         }
         Editor.one.getAllUI().filter(x => x instanceof Block).forEach(x => x.drawDebug());
         // msg("repaint");
+
+        if(checkSeperatedPorts){
+            checkSeperatedPorts = false;
+            disconnectSeperatedPorts();
+        }
+
         repaintCount++;
     }
 

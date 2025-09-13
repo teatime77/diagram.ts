@@ -86,7 +86,7 @@ export class Port {
 
         this.position.x = cx;
         this.position.y = cy;
-        
+
         ctx.arc(cx, cy, Port.radius, 0, 2 * Math.PI);
 
         ctx.fill();
@@ -148,6 +148,11 @@ export class Port {
         append(dst.sources, src);
 
         msg(`connect port:${this.idx}=>${port.idx}`);
+    }
+
+    disconnect(port : Port) : void {   
+        remove(this.destinations, port, true);
+        remove(port.sources, this, true);
     }
 }
 
@@ -326,8 +331,29 @@ async function periodicTask() {
     setTimeout(periodicTask, 100);
 }
 
+export function allActions() : ActionBlock[] {
+    return Editor.one.blocks.filter(x => x instanceof ActionBlock);
+}
+
+export function allDependentPorts() : Port[] {
+    const action_blocks = allActions();
+    return action_blocks.map(x => x.dependentPorts()).flat();
+}
+
+export function disconnectSeperatedPorts(){
+    const all_dependent_ports = allDependentPorts();
+    for(const port of all_dependent_ports){
+        for(const dst_port of port.destinations){
+            if(! port.isNear(dst_port.position)){
+                port.disconnect(dst_port);
+                msg(`dis-connect:${port.parent.constructor.name} ${dst_port.parent.constructor.name}`);
+            }
+        }
+    }
+}
+
 export function getTopActions() : ActionBlock[] {
-    const action_blocks = Main.one.editor.blocks.filter(x => x instanceof ActionBlock);
+    const action_blocks = allActions();
 
     const top_blocks : ActionBlock[] = [];
     for(const block of action_blocks){
