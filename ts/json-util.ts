@@ -159,5 +159,6 @@ function loadJson(objs:any[]){
     }
 
     setContext2D(Canvas.one.ctx, Editor.one);
+    Canvas.one.layoutRoot();
 }
 }

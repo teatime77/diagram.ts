@@ -86,8 +86,8 @@ export class Port {
 
         this.position.x = cx;
         this.position.y = cy;
-
-        ctx.arc(this.position.x, this.position.y, Port.radius, 0, 2 * Math.PI);
+        
+        ctx.arc(cx, cy, Port.radius, 0, 2 * Math.PI);
 
         ctx.fill();
         ctx.stroke();
@@ -97,12 +97,12 @@ export class Port {
         }
 
         if(this.name != ""){
-            // ctx.strokeText(this.name, this.position.x, this.position.y);
+            // ctx.strokeText(this.name, cx, cy);
             ctx.save();
             ctx.font = '24px Arial';
             ctx.fillStyle = "black";
-            const x = this.position.x - 7;
-            const y = this.position.y + 7;
+            const x = cx - 7;
+            const y = cy + 7;
             ctx.fillText(this.name, x, y);
             ctx.restore();
         }
@@ -112,8 +112,8 @@ export class Port {
             ctx.save();
             ctx.font = '24px Arial';
             ctx.fillStyle = "black";
-            const x = this.position.x - 7 + Port.radius;
-            const y = this.position.y + 7;
+            const x = cx - 7 + Port.radius;
+            const y = cy + 7;
             ctx.fillText(`${this.value}`, x, y);
             ctx.restore();
         }

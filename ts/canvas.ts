@@ -9,7 +9,11 @@ export class Canvas {
 
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
+
     draggedUI? : Block | Port | Button;
+    dependantActions : ActionBlock[] = [];
+    dependantActionPositions : Vec2[] = [];
+
     nearPorts : Port[] = [];
     pointerId : number = NaN;
 
@@ -57,6 +61,7 @@ export class Canvas {
     pointerdown(ev:PointerEvent){
         this.moved = false;
 
+        this.dependantActions = [];
         const pos = this.getPositionInCanvas(ev);
         const target = Editor.one.getUIPortFromPosition(pos);
         if(target != undefined){
@@ -79,6 +84,10 @@ export class Canvas {
                 else{
 
                     this.draggedUI = target;
+                    if(target instanceof ActionBlock){
+                        this.dependantActions = Array.from(target.dependantActions());
+                        this.dependantActionPositions = this.dependantActions.map(x => x.position.copy());
+                    }
                 }
             }
             else if(target instanceof Port){
@@ -135,7 +144,16 @@ export class Canvas {
 
         if(this.draggedUI instanceof Block){
 
-            this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
+            if(this.dependantActions.length == 0){
+                this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
+            }
+            else{
+
+                for(const [i,block] of this.dependantActions.entries()){
+                    block.setPosition( this.dependantActionPositions[i].add(diff) );
+                }
+            }
+
             this.getNearPorts(this.draggedUI);
         }
 
@@ -194,6 +212,7 @@ export class Canvas {
         this.canvas.classList.remove('dragging');
 
         this.draggedUI = undefined;
+        this.dependantActions = [];
         this.pointerId = NaN;
         this.nearPorts = [];
 

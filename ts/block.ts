@@ -360,10 +360,11 @@ export abstract class ActionBlock extends Block {
         return [ this.bottomPort ];
     }
 
-    *dependantActions(){
+    *dependantActions() : Generator<ActionBlock> {
         for(const src_port of this.dependentPorts()){
             for(const dst_port of src_port.destinations){
-                yield dst_port.parent as ActionBlock;
+                const action = dst_port.parent as ActionBlock;
+                yield* action.dependantActions();
             }
         }
 
@@ -1112,6 +1113,7 @@ export class CompareBlock extends InputTextBlock {
         }
     }
 }
+
 export function makeBlockByTypeName(typeName : string) : Block {
     switch(typeName){
     case InputTextBlock.name:                return new InputTextBlock({});
