@@ -85,12 +85,10 @@ export class Port {
         switch(this.type){
         case PortType.top:
             ctx.arc(this.position.x, this.position.y, notchRadius, 0, Math.PI, false);
-            msg(`notch:${this.parent.idx} top    ${this.position.x} ${this.position.y}`)
             break;
 
             case PortType.bottom:
             ctx.arc(this.position.x, this.position.y, notchRadius, Math.PI, 0, true);
-            msg(`notch:${this.parent.idx} bottom ${this.position.x} ${this.position.y}`)
             break;
 
         default:

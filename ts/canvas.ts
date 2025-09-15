@@ -229,7 +229,7 @@ export class Canvas {
     }
 
     layoutRoot(){
-        Editor.one.setMinSize();
+        Editor.one.setBoxSize();
         Editor.one.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
         allActions().forEach(x => x.setPortPositions());
     }

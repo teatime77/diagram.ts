@@ -56,7 +56,7 @@ export abstract class Block extends UI {
             block.ports[i].position = port.position.copy();
         }
 
-        block.setMinSize();
+        block.setBoxSize();
 
         return block;
     }
@@ -77,7 +77,7 @@ export abstract class Block extends UI {
     loadObj(obj : any ){        
     }
 
-    abstract setMinSize() : void;
+    abstract setBoxSize() : void;
 
     calcHeight() : number {
         return this.boxSize!.y;
@@ -334,86 +334,6 @@ export abstract class Block extends UI {
     }
 }
 
-export abstract class ActionBlock extends Block {
-    topPort       = new Port(this, PortType.top);
-    bottomPort    = new Port(this, PortType.bottom);
-
-    constructor(data : Attr){
-        super(data);
-
-        this.ports = [ 
-            this.topPort, 
-            this.bottomPort 
-        ];
-    }
-
-    dependentPorts() : Port[] {
-        return [ this.bottomPort ];
-    }
-
-    *dependantActions() : Generator<ActionBlock> {
-        for(const src_port of this.dependentPorts()){
-            for(const dst_port of src_port.destinations){
-                const action = dst_port.parent as ActionBlock;
-                yield* action.dependantActions();
-            }
-        }
-
-        yield this;
-    }
-
-    nextBlock() : ActionBlock | undefined {        
-        if(this.bottomPort.destinations.length != 0){
-            const dest_port = this.bottomPort.destinations[0];
-            return dest_port.parent as ActionBlock;
-        }
-
-        return undefined;
-    }
-
-    disconnectSeperatedPort() : boolean {
-        if(this.topPort.sources.length == 1){
-            const src_port = this.topPort.sources[0];
-            if(! src_port.isNear(this.topPort.position)){
-                src_port.disconnect(this.topPort);
-                msg(`dis-connect:${src_port.parent.constructor.name} ${this.constructor.name}`);
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    setPortPositions(){    
-        super.setPortPositions();
-
-        const [xa, ya, xb, yb] = this.drawBox();
-        const x2 = xa + 35;
-
-        this.topPort.position.x = x2;
-        this.topPort.position.y = ya;
-
-        this.bottomPort.position.x = x2;
-        this.bottomPort.position.y = yb;
-    }
-
-    draw(){
-        const [x1, y1, x2, y2] = this.drawBox();
-
-        this.drawOutline([
-            [x1, y1],
-            [x1, y2],
-            this.bottomPort,
-            [x2, y2],
-            [x2, y1],
-            this.topPort
-        ]);
-
-        this.drawIOPorts();
-    }
-}
-
 export abstract class FunctionBlock extends Block {
 }
 
@@ -551,7 +471,7 @@ export class InputRangeBlock extends InputBlock {
         }
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 80);
     }
 
@@ -614,7 +534,7 @@ export class ServoMotorBlock extends FunctionBlock {
         this.input.value = `${obj.channel}`;
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 50);
     }
 
@@ -681,7 +601,7 @@ export class InputTextBlock extends InputBlock {
         this.textPort.setPortValue(this.input.value);
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
 }
@@ -723,7 +643,7 @@ export class InputNumberBlock extends InputBlock {
         this.numberPort.setPortValue(this.input.valueAsNumber);
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 20 + 2 * 2 * notchRadius);
     }
 }
@@ -735,7 +655,7 @@ export class CameraBlock extends Block {
 
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         if(this.inToolbox){
 
             this.boxSize = new Vec2(200, 50 + 2 * notchRadius);
@@ -776,58 +696,6 @@ export class CameraBlock extends Block {
     }
 }
 
-export class TTSBlock extends ActionBlock {
-    inputPort = new TextPort(this, PortType.inputPort);
-    speech : Speech;
-
-    constructor(data : Attr){
-        super(data);
-        this.ports.push(this.inputPort);
-
-        i18n_ts.setVoiceLanguageCode("jpn");
-        this.speech = new Speech();
-    }
-
-    setMinSize() : void {
-        // const h = inputHeight + 2 * notchRadius + 4 * this.borderWidth;
-        this.boxSize = new Vec2(200, 60);
-    }
-
-    draw(): void {
-        super.draw();
-        this.drawIcon(ttsIcon);
-    }
-
-    async run(){
-        const text = this.inputPort.stringValue().trim();
-        await this.speech.speak_waitEnd(text);
-    }
-}
-
-
-export class SleepBlock extends ActionBlock {
-    inputPort = new NumberPort(this, PortType.inputPort);
-
-    constructor(data : Attr){
-        super(data);
-        this.ports.push(this.inputPort);
-    }
-
-    setMinSize() : void {
-        this.boxSize = new Vec2(200, 60);
-    }
-
-    draw(): void {
-        super.draw();
-        this.drawIcon(sleepIcon);
-    }
-
-    async run(){
-        const second = this.inputPort.numberValue();
-        await sleep(second * 1000);
-    }
-}
-
 export class FaceDetectionBlock extends Block {
     face : number[] = [];
 
@@ -836,7 +704,7 @@ export class FaceDetectionBlock extends Block {
         this.ports = [ new Port(this, PortType.inputPort), new Port(this, PortType.outputPort), new Port(this, PortType.outputPort) ];
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         if(this.inToolbox){
 
             this.boxSize = new Vec2(200, 10 + 2 * 2 * notchRadius);
@@ -922,7 +790,7 @@ export class JoyStickBlock extends Block {
         this.ports = [ ];
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 50);
     }
 }
@@ -935,7 +803,7 @@ export class UltrasonicDistanceSensorBlock extends Block {
         ];
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 50);
     }
 
@@ -1008,7 +876,7 @@ export class CalcBlock extends InputTextBlock {
         ];
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         // const h = inputHeight + 2 * 2 * Port.radius + 4 * this.borderWidth;
         this.boxSize = new Vec2(200, 80);
     }
@@ -1043,7 +911,7 @@ export class CompareBlock extends InputTextBlock {
 
         this.input.value = "a == a";
     }
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = new Vec2(200, 80);
     }
 

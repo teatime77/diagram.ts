@@ -128,7 +128,7 @@ function loadJson(objs:any[]){
         block.idx        = obj.idx;
         block.position.x = obj.x;
         block.position.y = obj.y;
-        block.setMinSize();
+        block.setBoxSize();
 
         block_map.set(block.idx, block);
 

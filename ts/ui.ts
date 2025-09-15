@@ -126,7 +126,7 @@ export abstract class UI {
         return this.margin[2] + this.margin[3] + 2 * this.borderWidth + this.padding[2] + this.padding[3];
     }
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.boxSize = Vec2.zero();
         msg(`set-min-size:${this.constructor.name}`);
     }
@@ -283,7 +283,7 @@ export class TextUI extends UI {
     }
 
 
-    setMinSize() : void {
+    setBoxSize() : void {
         this.metrics = this.ctx.measureText(this.text);
       
         this.actualHeight = this.metrics.actualBoundingBoxAscent + this.metrics.actualBoundingBoxDescent;
@@ -348,7 +348,7 @@ export class Editor extends UI {
         let x = 10;
         let y = 60;
         for(const block of this.tools){
-            block.setMinSize();
+            block.setBoxSize();
 
             block.layout(x, y, block.boxSize!, 1);
 
@@ -371,13 +371,13 @@ export class Editor extends UI {
         this.blocks.push(block);
     }
 
-    setMinSize() : void {
-        this.tools.forEach(x => x.setMinSize());
+    setBoxSize() : void {
+        this.tools.forEach(x => x.setBoxSize());
 
         const top_actions = getTopActions();
         for(const top_action of top_actions){
             for(const block of top_action.dependantActions()){
-                block.setMinSize();
+                block.setBoxSize();
             }
         }
 
