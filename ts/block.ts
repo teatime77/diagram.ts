@@ -6,7 +6,7 @@ namespace diagram_ts {
 export const notchRadius = 10;        
 export const inputHeight = 21;
 
-const blockLineColor = "brown";
+export const blockLineColor = "brown";
 const nearPortDistance = 10;
 
 const rangeWidth  = 150;
@@ -52,6 +52,9 @@ export abstract class Block extends UI {
 
         block.position = this.position.copy();
         block.ctx      = this.ctx;
+        for(const [i, port] of this.ports.entries()){
+            block.ports[i].position = port.position.copy();
+        }
 
         block.setMinSize();
 
@@ -106,7 +109,7 @@ export abstract class Block extends UI {
 
     moveDiff(diff : Vec2) : void {
         const new_position = this.position.add(diff);
-        this.setPosition(new_position);
+        this.setBlockPortPosition(new_position);
     }
 
     outputPorts() : Port[] {
@@ -149,24 +152,40 @@ export abstract class Block extends UI {
 
         Canvas.one.layoutRoot();
         msg(`connect block`);
-
     }
 
-    drawNotch(cx : number, cy : number, type : PortType){
-        switch(type){
-        case PortType.bottom:
-            this.ctx.arc(cx, cy, notchRadius, Math.PI, 0, true);
-            break;
-        case PortType.top:
-            this.ctx.arc(cx, cy, notchRadius, 0, Math.PI, false);
-            break;
+    setPortPositions(){     
+        const [xa, ya, xb, yb] = this.drawBox();
 
-        default:
-            throw new MyError();
+        if(this instanceof IfBlock){
+            const y2 = ya + nest_h1;
+
+            this.conditionPort.position.x = xb - Port.radius;
+            this.conditionPort.position.y = 0.5 * (ya + y2);
+        }
+        else{
+
+            const input_ports  = this.ports.filter(x => x.type == PortType.inputPort);
+            const output_ports = this.ports.filter(x => x.type == PortType.outputPort);
+
+            for(const ports of [ input_ports, output_ports]){
+                const y = (ports == input_ports ? ya + notchRadius: yb - notchRadius);
+                for(const [i, port] of ports.entries()){
+                    const p = (i + 1) / (ports.length + 1);
+                    const x = xa * (1 - p) + xb * p;
+                    port.position.x = x;
+                    port.position.y = y;
+                }
+            }
         }
     }
 
-    drawOutline(points : [number, number, null|Port][], color : string = blockLineColor){
+    setBlockPortPosition(position : Vec2) : void {
+        this.setPosition(position);
+        this.setPortPositions();
+    }
+
+    drawOutline(points : ([number, number] | Port | null)[], color : string = blockLineColor){
         const canvas = Canvas.one;
         if(canvas.draggedUI == this){
 
@@ -182,22 +201,21 @@ export abstract class Block extends UI {
 
         this.ctx.beginPath();
 
-        for(const [idx, [x, y, port]] of points.entries()){
-            if(idx == 0){
-
-                this.ctx.moveTo(x, y);
+        for(const [idx, data] of points.entries()){
+            if(data == null){
+                continue;
+            }
+            else if(data instanceof Port){
+                data.drawNotch(this.ctx);
             }
             else{
-                if(port == null){
+                const [x, y] = data;
+                if(idx == 0){
 
-                    this.ctx.lineTo(x, y);
+                    this.ctx.moveTo(x, y);
                 }
                 else{
-                    this.drawNotch(x, y, port.type);
-
-                    const port_pos = port.position;
-                    port_pos.x = x;
-                    port_pos.y = y;
+                    this.ctx.lineTo(x, y);
                 }
             }
         }
@@ -211,18 +229,12 @@ export abstract class Block extends UI {
         }
     }
 
-    drawIOPorts(x1 : number, x2 : number, y1 : number, y2 : number){
-        const input_ports  = this.ports.filter(x => x.type == PortType.inputPort);
-        const output_ports = this.ports.filter(x => x.type == PortType.outputPort);
+    IOPorts(){
+        return this.ports.filter(x =>  x.type == PortType.inputPort || x.type == PortType.outputPort);
+    }
 
-        for(const ports of [ input_ports, output_ports]){
-            const y = (ports == input_ports ? y1 + notchRadius: y2 - notchRadius);
-            for(const [i, port] of ports.entries()){
-                const p = (i + 1) / (ports.length + 1);
-                const x = x1 * (1 - p) + x2 * p;
-                port.drawPort(this.ctx, x, y);
-            }
-        }
+    drawIOPorts(){
+        this.IOPorts().forEach(x => x.drawIOPort(this.ctx));
     }
 
     drawIcon(img : HTMLImageElement){
@@ -238,38 +250,17 @@ export abstract class Block extends UI {
         this.ctx.drawImage(img, img_x, img_y, img_width, img_height);
     }
 
-    drawDataflowBlock(){
-        const [x1, y1, x2, y2] = this.borderInnerBox();
+    draw(){
+        const [x1, y1, x2, y2] = this.drawBox();
 
         this.drawOutline([
-            [x1, y1, null],
-            [x1, y2, null],
-            [x2, y2, null],
-            [x2, y1, null],
+            [x1, y1],
+            [x1, y2],
+            [x2, y2],
+            [x2, y1],
         ]);
 
-        this.drawIOPorts(x1, x2, y1, y2);
-    }
-
-    drawActionBlock(){
-        const [x1, y1, x2_, y2_] = this.borderInnerBox();
-
-        const x2 = x1 + 35;
-
-        const y2 = y2_ - notchRadius;
-
-        this.drawOutline([
-            [x1, y1, null],
-
-            [x1, y2, null],
-            [x2, y2, this.ports[1]],
-            [x2_, y2, null],
-
-            [x2_, y1, null],
-            [x2, y1, this.ports[0]]
-        ]);
-
-        this.drawIOPorts(x1, x2_, y1, y2_);
+        this.drawIOPorts();
     }
 
     canConnectNearPortPair(block : Block) : Port[] {
@@ -379,6 +370,48 @@ export abstract class ActionBlock extends Block {
 
         return undefined;
     }
+
+    disconnectSeperatedPort() : boolean {
+        if(this.topPort.sources.length == 1){
+            const src_port = this.topPort.sources[0];
+            if(! src_port.isNear(this.topPort.position)){
+                src_port.disconnect(this.topPort);
+                msg(`dis-connect:${src_port.parent.constructor.name} ${this.constructor.name}`);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    setPortPositions(){    
+        super.setPortPositions();
+
+        const [xa, ya, xb, yb] = this.drawBox();
+        const x2 = xa + 35;
+
+        this.topPort.position.x = x2;
+        this.topPort.position.y = ya;
+
+        this.bottomPort.position.x = x2;
+        this.bottomPort.position.y = yb;
+    }
+
+    draw(){
+        const [x1, y1, x2, y2] = this.drawBox();
+
+        this.drawOutline([
+            [x1, y1],
+            [x1, y2],
+            this.bottomPort,
+            [x2, y2],
+            [x2, y1],
+            this.topPort
+        ]);
+
+        this.drawIOPorts();
+    }
 }
 
 export abstract class FunctionBlock extends Block {
@@ -436,10 +469,6 @@ export abstract class InputBlock extends FunctionBlock {
 
         this.input.style.left = `${x1}px`;
         this.input.style.top  = `${y1}px`;
-    }
-
-    draw(){
-        this.drawDataflowBlock();
     }
 }
 
@@ -550,10 +579,6 @@ export class InputRangeBlock extends InputBlock {
         this.maxInput.style.left = `${x1 + rc1.width - rc2.width}px`;
         this.maxInput.style.top  = `${y2}px`;
     }
-
-    draw(){
-        this.drawDataflowBlock();
-    }
 }
 
 
@@ -609,7 +634,7 @@ export class ServoMotorBlock extends FunctionBlock {
     }
 
     draw(): void {
-        this.drawDataflowBlock();
+        super.draw();
         this.drawIcon(motorIcon);
     }
 
@@ -703,64 +728,6 @@ export class InputNumberBlock extends InputBlock {
     }
 }
 
-export class SetValueBlock extends InputTextBlock {
-    constructor(data : Attr){
-        super(data);
-
-        this.input.style.width = "45px";
-        this.input.value = "0";
-
-        this.input.addEventListener("change", (ev : Event) => {
-            msg(`change : [${this.input.value}]`);
-        });
-
-        this.ports = [ 
-            new Port(this, PortType.top),
-            new Port(this, PortType.outputPort),
-            new Port(this, PortType.bottom),
-        ];
-    }
-
-    setMinSize() : void {
-        const h = inputHeight + 2 * Port.radius + 2 * notchRadius + 3 * this.borderWidth;
-        this.boxSize = new Vec2(200, h);
-    }
-
-    getInputPosition() : [number, number]{
-        const [x1, y1, x2, y2] = this.borderInnerBox();
-
-        const rect = this.input.getBoundingClientRect();
-        msg(`input h:${rect.height} ${this.input.type}`);
-
-        const input_x = x1 + 0.5 * ((x2 - x1) - rect.width);
-        const input_y = y1;
-
-        return [input_x, input_y];
-    }
-
-    draw(){
-        const [xa, ya, xb, yb] = this.borderInnerBox();
-
-        const x2 = xa + 35;
-
-        const y2 = yb - notchRadius;
-
-        this.drawOutline([
-            [xa, ya, null],
-
-            [xa, y2, null],
-            [x2, y2, this.ports[2]],
-            [xb, y2, null],
-
-            [xb, ya, null],
-            [x2, ya, this.ports[0]]
-        ])
-
-        this.drawIOPorts(xa, xb, ya, y2);
-    }
-}
-
-
 export class CameraBlock extends Block {
     constructor(data : Attr){
         super(data);
@@ -771,7 +738,7 @@ export class CameraBlock extends Block {
     setMinSize() : void {
         if(this.inToolbox){
 
-            this.boxSize = new Vec2(320, 50 + 2 * notchRadius);
+            this.boxSize = new Vec2(200, 50 + 2 * notchRadius);
         }
         else{
 
@@ -781,7 +748,7 @@ export class CameraBlock extends Block {
 
 
     draw(){
-        this.drawDataflowBlock();
+        super.draw();
 
         const [x1, y1, x2, y2] = this.borderInnerBox();
 
@@ -823,11 +790,11 @@ export class TTSBlock extends ActionBlock {
 
     setMinSize() : void {
         // const h = inputHeight + 2 * notchRadius + 4 * this.borderWidth;
-        this.boxSize = new Vec2(300, 60);
+        this.boxSize = new Vec2(200, 60);
     }
 
     draw(): void {
-        this.drawActionBlock();
+        super.draw();
         this.drawIcon(ttsIcon);
     }
 
@@ -851,7 +818,7 @@ export class SleepBlock extends ActionBlock {
     }
 
     draw(): void {
-        this.drawActionBlock();
+        super.draw();
         this.drawIcon(sleepIcon);
     }
 
@@ -872,7 +839,7 @@ export class FaceDetectionBlock extends Block {
     setMinSize() : void {
         if(this.inToolbox){
 
-            this.boxSize = new Vec2(150, 10 + 2 * 2 * notchRadius);
+            this.boxSize = new Vec2(200, 10 + 2 * 2 * notchRadius);
         }
         else{
 
@@ -901,7 +868,7 @@ export class FaceDetectionBlock extends Block {
     }
 
     draw(){
-        this.drawDataflowBlock();
+        super.draw();
 
         const camera = this.getCamera();
         if(camera != undefined){
@@ -956,7 +923,7 @@ export class JoyStickBlock extends Block {
     }
 
     setMinSize() : void {
-        this.boxSize = new Vec2(150, 50);
+        this.boxSize = new Vec2(200, 50);
     }
 }
 
@@ -969,7 +936,7 @@ export class UltrasonicDistanceSensorBlock extends Block {
     }
 
     setMinSize() : void {
-        this.boxSize = new Vec2(300, 50);
+        this.boxSize = new Vec2(200, 50);
     }
 
     setDistance(distance : number){
@@ -977,7 +944,7 @@ export class UltrasonicDistanceSensorBlock extends Block {
     }
 
     draw(): void {
-        this.drawDataflowBlock();
+        super.draw();
         this.drawIcon(distanceSensorIcon);
     }
 }
@@ -1123,7 +1090,6 @@ export function makeBlockByTypeName(typeName : string) : Block {
     case InfiniteLoop.name:                  return new InfiniteLoop({});
     case InputRangeBlock.name:               return new InputRangeBlock({});
     case ServoMotorBlock.name:               return new ServoMotorBlock({});
-    case SetValueBlock.name:                 return new SetValueBlock({});
     case CameraBlock.name:                   return new CameraBlock({});
     case TTSBlock.name:                      return new TTSBlock({});
     case SleepBlock.name:                    return new SleepBlock({});

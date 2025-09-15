@@ -80,14 +80,28 @@ export class Port {
     isNear(pos : Vec2){
         return this.position.distance(pos) < Port.radius;
     }
+    
+    drawNotch(ctx : CanvasRenderingContext2D){
+        switch(this.type){
+        case PortType.top:
+            ctx.arc(this.position.x, this.position.y, notchRadius, 0, Math.PI, false);
+            msg(`notch:${this.parent.idx} top    ${this.position.x} ${this.position.y}`)
+            break;
 
-    drawPort(ctx : CanvasRenderingContext2D, cx : number, cy : number) : void {       
+            case PortType.bottom:
+            ctx.arc(this.position.x, this.position.y, notchRadius, Math.PI, 0, true);
+            msg(`notch:${this.parent.idx} bottom ${this.position.x} ${this.position.y}`)
+            break;
+
+        default:
+            throw new MyError();
+        }
+    }
+
+    drawIOPort(ctx : CanvasRenderingContext2D) : void {   
         ctx.beginPath();
 
-        this.position.x = cx;
-        this.position.y = cy;
-
-        ctx.arc(cx, cy, Port.radius, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, Port.radius, 0, 2 * Math.PI);
 
         ctx.fill();
         ctx.stroke();
@@ -97,12 +111,12 @@ export class Port {
         }
 
         if(this.name != ""){
-            // ctx.strokeText(this.name, cx, cy);
+            // ctx.strokeText(this.name, this.position.x, this.position.y);
             ctx.save();
             ctx.font = '24px Arial';
             ctx.fillStyle = "black";
-            const x = cx - 7;
-            const y = cy + 7;
+            const x = this.position.x - 7;
+            const y = this.position.y + 7;
             ctx.fillText(this.name, x, y);
             ctx.restore();
         }
@@ -112,8 +126,8 @@ export class Port {
             ctx.save();
             ctx.font = '24px Arial';
             ctx.fillStyle = "black";
-            const x = cx - 7 + Port.radius;
-            const y = cy + 7;
+            const x = this.position.x - 7 + Port.radius;
+            const y = this.position.y + 7;
             ctx.fillText(`${this.value}`, x, y);
             ctx.restore();
         }
@@ -190,21 +204,23 @@ export class Main {
         Main.one = this;
 
         const tools : Block[] = [
-            new InputTextBlock({ inToolbox : true })
-            ,
-            new InputNumberBlock({ inToolbox : true })
-            ,
             new IfBlock({ inToolbox : true })
             ,
             new InfiniteLoop({ inToolbox : true })
+            ,
+            new TTSBlock({ inToolbox : true })
+            ,
+            new SleepBlock({ inToolbox : true })
+            ,
+            new InputTextBlock({ inToolbox : true })
+            ,
+            new InputNumberBlock({ inToolbox : true })
             ,
             new CompareBlock({ inToolbox : true })
             ,
             new InputRangeBlock({ inToolbox : true })
             ,
             new ServoMotorBlock({ inToolbox : true })
-            ,                            
-            new SetValueBlock({ inToolbox : true })
             ,
             new CameraBlock({ inToolbox : true })
             ,
@@ -213,10 +229,6 @@ export class Main {
             new CalcBlock({ inToolbox : true })
             ,
             new UltrasonicDistanceSensorBlock({ inToolbox : true })
-            ,
-            new TTSBlock({ inToolbox : true })
-            ,
-            new SleepBlock({ inToolbox : true })
         ];
 
 
@@ -338,18 +350,6 @@ export function allActions() : ActionBlock[] {
 export function allDependentPorts() : Port[] {
     const action_blocks = allActions();
     return action_blocks.map(x => x.dependentPorts()).flat();
-}
-
-export function disconnectSeperatedPorts(){
-    const all_dependent_ports = allDependentPorts();
-    for(const port of all_dependent_ports){
-        for(const dst_port of port.destinations){
-            if(! port.isNear(dst_port.position)){
-                port.disconnect(dst_port);
-                msg(`dis-connect:${port.parent.constructor.name} ${dst_port.parent.constructor.name}`);
-            }
-        }
-    }
 }
 
 export function getTopActions() : ActionBlock[] {

@@ -354,6 +354,8 @@ export class Editor extends UI {
 
             y += block.boxSize!.y + 10;
         }
+
+        this.tools.forEach(x => x.setPortPositions());
     }
 
     children() : UI[] {

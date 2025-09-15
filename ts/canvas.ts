@@ -3,7 +3,6 @@ namespace diagram_ts {
 export let repaintCount = 0;
 
 let animationFrameId : number | null = null;
-let checkSeperatedPorts : boolean = false;
 
 export class Canvas {
     static one : Canvas;
@@ -146,12 +145,12 @@ export class Canvas {
         if(this.draggedUI instanceof Block){
 
             if(this.dependantActions.length == 0){
-                this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
+                this.draggedUI.setBlockPortPosition( this.uiOrgPos.add(diff) );
             }
             else{
 
                 for(const [i,block] of this.dependantActions.entries()){
-                    block.setPosition( this.dependantActionPositions[i].add(diff) );
+                    block.setBlockPortPosition( this.dependantActionPositions[i].add(diff) );
                 }
             }
 
@@ -197,11 +196,16 @@ export class Canvas {
                     this.layoutRoot();
                 }
                 else{
-                    this.draggedUI.setPosition( this.uiOrgPos.add(diff) );
+                    this.draggedUI.setBlockPortPosition( this.uiOrgPos.add(diff) );
+                }
+
+                if(this.draggedUI instanceof ActionBlock){
+                    const disconnected = this.draggedUI.disconnectSeperatedPort();
+                    if(disconnected){
+                        this.layoutRoot();
+                    }
                 }
             }
-
-            checkSeperatedPorts = true;
         }
         else{
             msg(`click:${this.draggedUI.constructor.name}`);
@@ -227,6 +231,7 @@ export class Canvas {
     layoutRoot(){
         Editor.one.setMinSize();
         Editor.one.layout(0, 0, new Vec2(this.canvas.width, this.canvas.height), 0);        
+        allActions().forEach(x => x.setPortPositions());
     }
 
     resizeCanvas() {
@@ -264,11 +269,6 @@ export class Canvas {
         }
         Editor.one.getAllUI().filter(x => x instanceof Block).forEach(x => x.drawDebug());
         // msg("repaint");
-
-        if(checkSeperatedPorts){
-            checkSeperatedPorts = false;
-            disconnectSeperatedPorts();
-        }
 
         repaintCount++;
     }

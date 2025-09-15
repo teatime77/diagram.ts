@@ -1,9 +1,9 @@
 namespace diagram_ts {
 //
 
-const nest_h1 = 35;
+export const nest_h1 = 35;
 const nest_h2 = 30;
-const nest_h3 = 10;
+const nest_h3 = 20;
 
 export abstract class NestBlock extends ActionBlock {
     innerPort() : Port {
@@ -61,7 +61,7 @@ export abstract class NestBlock extends ActionBlock {
             block.setMinSize();
         }
 
-        this.boxSize = new Vec2(150, this.calcHeight());
+        this.boxSize = new Vec2(200, this.calcHeight());
     }
 
     calcHeight() : number {
@@ -83,6 +83,46 @@ export abstract class NestBlock extends ActionBlock {
 
     dependentPorts() : Port[] {
         return [ this.innerPort(), this.bottomPort ];
+    }
+
+    setPortPositions(){    
+        super.setPortPositions();
+
+        const [xa, ya, xb, yb] = this.drawBox();
+        const port = this.innerPort();
+        port.position.x = xa + 35 + 35;
+        port.position.y = ya + nest_h1;
+    }
+
+
+    draw(){
+        const [xa, ya, xb, yb] = this.drawBox();
+
+        const x2 = xa + 35;
+
+        const y2 = ya + nest_h1;
+        const y3 = yb - nest_h3;
+
+        const bottom_port = (this instanceof InfiniteLoop ? null : this.bottomPort);
+        this.drawOutline([
+            [xa, ya],
+
+            [xa, yb],
+            bottom_port,
+            [xb, yb],
+
+            [xb, y3],
+            [x2, y3],
+
+            [x2, y2],
+            this.innerPort(),
+            [xb, y2],
+
+            [xb, ya],
+            this.topPort
+        ]);
+
+        this.drawIOPorts();
     }
 }
 
@@ -109,49 +149,6 @@ export class IfBlock extends NestBlock {
         return this.innerBlock();
     }
 
-    draw(){
-        const [xa, ya, xb, yb] = this.borderInnerBox();
-
-        const x2 = xa + 35;
-        const x3 = x2 + 35;
-
-        const y2 = ya + nest_h1;
-        const y3 = yb - notchRadius - nest_h3;
-        const y4 = yb - notchRadius;
-
-
-        this.drawOutline([
-            // left top
-            [xa, ya, null],
-
-            // left bottom
-            [xa, y4, null],
-
-            // bottom notch
-            [x2, y4, this.bottomPort],
-
-            // right bottom
-            [xb, y4, null],
-
-            [xb, y3, null],
-            [x2, y3, null],
-
-            [x2, y2, null],
-
-            // loop notch
-            [x3, y2, this.truePort],
-            [xb, y2, null],
-
-            // right top
-            [xb, ya, null],
-
-            // top notch
-            [x2, ya, this.topPort]
-        ]);
-
-        this.conditionPort.drawPort(this.ctx, xb - Port.radius, 0.5 * (ya + y2));
-    }
-
     async run(){
         const true_block = this.trueBlock();
         if(true_block != undefined && this.isTrue()){
@@ -173,54 +170,6 @@ export class InfiniteLoop extends NestBlock {
 
     loopBlock() : ActionBlock | undefined {
         return this.innerBlock();
-    }
-
-    draw(){
-        const [xa, ya, xb, yb] = this.borderInnerBox();
-
-        const x2 = xa + 35;
-        const x3 = x2 + 35;
-
-        const y2 = ya + nest_h1;
-        const y3 = yb - nest_h3;
-
-
-        this.drawOutline([
-            [xa, ya, null],
-
-            [xa, yb, null],
-            [xb, yb, null],
-
-            [xb, y3, null],
-            [x2, y3, null],
-
-            [x2, y2, null],
-            [x3, y2, this.loopPort],
-            [xb, y2, null],
-
-            [xb, ya, null],
-            [x2, ya, this.topPort]
-        ]);
-        
-        const borderWidth = this.borderWidth;
-        this.borderWidth = 0.5;
-        this.drawOutline([
-            [xa, ya, null],
-
-            [xa, yb, null],
-            [xb, yb, null],
-
-            [xb, y3, null],
-            [x2, y3, null],
-
-            [x2, y2, null],
-            [x3, y2, this.loopPort],
-            [xb, y2, null],
-
-            [xb, ya, null],
-            [x2, ya, this.topPort]
-        ], "yellow");
-        this.borderWidth = borderWidth;
     }
 
     async run(){

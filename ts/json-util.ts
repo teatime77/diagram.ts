@@ -87,7 +87,7 @@ export function setDragDrop(canvas : HTMLCanvasElement){
                 }
 
                 // draw input elements in blocks.
-                Main.one.editor.blocks.forEach(x => x.setPosition(x.position));
+                Main.one.editor.blocks.forEach(x => x.setBlockPortPosition(x.position));
                 Canvas.one.requestUpdateCanvas();
             };
 
@@ -141,6 +141,8 @@ function loadJson(objs:any[]){
 
         Main.one.editor.addBlock(block);
     }
+
+    Editor.one.blocks.forEach(x => x.setPortPositions());
 
     for(const obj of objs){
         const block = block_map.get(obj.idx)!;
