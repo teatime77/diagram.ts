@@ -30,11 +30,6 @@ function pixel(length : string,  remaining_length? : number) : number {
     throw new MyError();
 }
 
-export function setContext2D(ctx : CanvasRenderingContext2D, ui : UI){
-    ui.ctx = ctx;
-    ui.children().forEach(child => setContext2D(ctx, child));
-}
-
 export interface Attr {
     className? : string;
     obj? : any;
@@ -98,16 +93,8 @@ export abstract class UI {
         return [];
     }    
 
-    getAllUISub(uis : UI[]){
-        uis.push(this);
-        this.children().forEach(x => x.getAllUISub(uis));
-    }
-
-    getAllUI() : UI[] {
-        let uis : UI[] = [];
-        this.getAllUISub(uis);
-
-        return uis;
+    getPosition() : Vec2 {
+        return this.position;
     }
 
     marginWidth() : number {
@@ -143,11 +130,6 @@ export abstract class UI {
 
     setPosition(position : Vec2) : void {
         this.position = position;
-    }
-
-    layout(x : number, y : number, size : Vec2, nest : number){
-        this.boxSize = size;
-        this.setPosition(new Vec2(x, y));
     }
 
     marginBox() : [number, number, number, number] {
@@ -195,15 +177,9 @@ export abstract class UI {
         }
     }
 
-    getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
-        for(const child of this.children()){
-            const target = child.getUIPortFromPosition(pos);
-            if(target != undefined){
-                return target;
-            }
-        }
-
-        return undefined;
+    inMarginBox(pos : Vec2) : boolean {
+        const [ xa, ya, xb, yb ] = this.marginBox();
+        return xa <= pos.x && pos.x < xb && ya <= pos.y && pos.y < yb;
     }
 
     draw(){
@@ -230,7 +206,6 @@ export abstract class UI {
     dump(nest : number){
         msg(`${" ".repeat(nest * 4)}${this.str()}`);
     }
-
 
     drawRidgeRect(ctx : CanvasRenderingContext2D, x : number, y : number, width : number, height : number, ridgeWidth : number, isInset = false) {
         // Define light and dark colors
@@ -334,23 +309,21 @@ export abstract class Node extends UI {
     }
 }
 
-export class Editor extends UI {
+export class Editor {
     static one : Editor;
     tools  : Block[];
     blocks : Block[] = [];
 
-    constructor(data : Attr & { blocks : Block[] }){
-        super(data);
+    constructor(tools : Block[]){
         Editor.one = this;
 
-        this.tools = data.blocks.slice();
+        this.tools = tools.slice();
 
         let x = 10;
         let y = 60;
         for(const block of this.tools){
             block.setBoxSize();
-
-            block.layout(x, y, block.boxSize!, 1);
+            block.setBlockPortPosition(new Vec2(x, y));
 
             y += block.boxSize!.y + 10;
         }
@@ -358,7 +331,7 @@ export class Editor extends UI {
         this.tools.forEach(x => x.setPortPositions());
     }
 
-    children() : UI[] {
+    allBlocks() : Block[] {
         return this.tools.concat(this.blocks);
     }
 
@@ -371,24 +344,52 @@ export class Editor extends UI {
         this.blocks.push(block);
     }
 
-    setBoxSize() : void {
-        this.tools.forEach(x => x.setBoxSize());
+    setContext2D(ctx : CanvasRenderingContext2D){
+        this.allBlocks().forEach(x => x.ctx = ctx);
+    }
 
-        const top_actions = getTopActions();
-        for(const top_action of top_actions){
-            for(const block of top_action.dependantActions()){
+    setNestBoxSize() : void {
+        const top_nest_actions = getTopActions().filter(x => x instanceof NestBlock);
+        for(const top_action of top_nest_actions){
+            const nest_blocks = Array.from(top_action.dependantActions()).filter(x => x instanceof NestBlock);
+            for(const block of nest_blocks){
                 block.setBoxSize();
             }
         }
+    }
 
-        this.boxSize = new Vec2(Canvas.one.canvas.width, Canvas.one.canvas.height);
+    layoutRoot(){
+        Editor.one.setNestBoxSize();
+        const top_actions = getTopActions();
+        top_actions.forEach(x => x.adjustActionPosition(x.position));
     }
 
     draw(){
-        super.draw();
-
         this.tools.forEach(x => x.draw());
         this.blocks.forEach(x => x.draw());
+    }
+
+    dumpBlocks(){
+
+    }
+
+    getPortBlockFromPosition(pos : Vec2) : Port | Block | undefined {
+        const blocks = this.allBlocks().filter(x => x.inMarginBox(pos));
+
+        for(const block of blocks){
+            const port = block.ports.find(x => x.isNear(pos));
+            if(port != undefined){
+                return port;
+            }
+        }
+
+        for(const block of blocks){
+            if(block.inDrawBoxes(pos)){
+                return block;
+            }
+        }
+
+        return undefined;
     }
 }
 

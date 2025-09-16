@@ -33,19 +33,49 @@ export abstract class ActionBlock extends Block {
         yield this;
     }
 
-    nextBlock() : ActionBlock | undefined {        
-        if(this.bottomPort.destinations.length != 0){
-            const dest_port = this.bottomPort.destinations[0];
-            return dest_port.parent as ActionBlock;
+    prevBlock() : ActionBlock | undefined {        
+        const prev_port = this.bottomPort.prevPort();
+        if(prev_port != undefined){
+            return prev_port.parent as ActionBlock;
         }
 
         return undefined;
     }
 
+    nextBlock() : ActionBlock | undefined {        
+        const dst_port = this.bottomPort.nextPort();
+        if(dst_port != undefined){
+            return dst_port.parent as ActionBlock;
+        }
+
+        return undefined;
+    }
+
+    checkTopPortConnection() : boolean {
+        const prev_port = this.topPort.prevPort();
+        if(prev_port != undefined){
+            if(! this.topPort.isNearPort(prev_port)){
+
+                prev_port.disconnect(this.topPort);
+                return true;
+            }
+        }
+        else{
+            const ports = allActions().filter(x => x != this).map(x => x.ports).flat();
+            const port = ports.find(x => x.canConnect(this.topPort));
+            if(port != undefined){
+                port.connect(this.topPort);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     disconnectSeperatedPort() : boolean {
         if(this.topPort.sources.length == 1){
             const src_port = this.topPort.sources[0];
-            if(! src_port.isNear(this.topPort.position)){
+            if(! src_port.isNearPort(this.topPort)){
                 src_port.disconnect(this.topPort);
                 msg(`dis-connect:${src_port.parent.constructor.name} ${this.constructor.name}`);
 
@@ -62,11 +92,23 @@ export abstract class ActionBlock extends Block {
         const [xa, ya, xb, yb] = this.drawBox();
         const x2 = xa + 35;
 
-        this.topPort.position.x = x2;
-        this.topPort.position.y = ya;
+        this.topPort.setPortPositionXY(x2, ya)
 
-        this.bottomPort.position.x = x2;
-        this.bottomPort.position.y = yb;
+        this.bottomPort.setPortPositionXY(x2, yb);
+    }
+
+    adjustActionPosition(position : Vec2) : void {
+        this.setBlockPortPosition(position);
+        
+        for(const port of this.dependentPorts()){
+            const dst_port = port.nextPort();
+            if(dst_port != undefined){
+                const dst_action_position = port.getPosition().sub(dst_port.offset);
+
+                const dst_action = dst_port.parent as ActionBlock;
+                dst_action.adjustActionPosition(dst_action_position);
+            }
+        }
     }
 
     draw(){
@@ -189,10 +231,6 @@ export abstract class NestBlock extends ActionBlock {
     }
 
     setBoxSize() : void {
-        for(let block = this.innerBlock(); block != undefined; block = block.nextBlock()){
-            block.setBoxSize();
-        }
-
         this.boxSize = new Vec2(200, this.calcHeight());
     }
 
@@ -222,10 +260,24 @@ export abstract class NestBlock extends ActionBlock {
 
         const [xa, ya, xb, yb] = this.drawBox();
         const port = this.innerPort();
-        port.position.x = xa + 35 + 35;
-        port.position.y = ya + nest_h1;
+        port.setPortPositionXY(xa + 35 + 35, ya + nest_h1);
     }
 
+
+    drawBoxes() : [number, number, number, number][] {
+        const [xa, ya, xb, yb] = this.drawBox();
+
+        const x2 = xa + 35;
+
+        const y2 = ya + nest_h1;
+        const y3 = yb - nest_h3;
+
+        return [ 
+            [xa, ya, xb, y2],
+            [xa, y2, x2, y3],
+            [xa, y3, xb, yb]
+         ];
+    }
 
     draw(){
         const [xa, ya, xb, yb] = this.drawBox();

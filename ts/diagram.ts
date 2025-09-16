@@ -33,7 +33,8 @@ export class Port {
     destinations : Port[]  = [];
     sources : Port[]  = [];
     type : PortType;
-    position : Vec2 = Vec2.zero();
+    offset : Vec2 = Vec2.zero();
+    private position : Vec2 = Vec2.zero();
 
     prevValue : any | undefined;
     value : any | undefined;
@@ -50,7 +51,7 @@ export class Port {
 
     copyPort(parent : Block) : Port {
         const port = new Port(parent, this.type);
-        port.position = this.position.copy();
+        port.setPortPositionXY(this.position.x, this.position.y);
 
         return port;
     }
@@ -77,8 +78,44 @@ export class Port {
         }
     }
 
+    getPosition() : Vec2 {
+        return this.position;
+    }
+
+    setPortPositionXY(x : number, y : number){
+        this.position.x = x;
+        this.position.y = y;
+
+        this.offset.x = x - this.parent.position.x;
+        this.offset.y = y - this.parent.position.y;
+    }
+
     isNear(pos : Vec2){
         return this.position.distance(pos) < Port.radius;
+    }
+
+    isNearPort(port : Port){
+        return this.position.distance(port.position) < Port.radius;
+    }
+
+    diffPosition(port : Port) : Vec2 {
+        return this.position.sub(port.position);
+    }
+
+    prevPort() : Port | undefined {
+        if(this.sources.length == 1){
+            return this.sources[0];
+        }
+
+        return undefined;
+    }
+
+    nextPort() : Port | undefined {
+        if(this.destinations.length == 1){
+            return this.destinations[0];
+        }
+
+        return undefined;
     }
     
     drawNotch(ctx : CanvasRenderingContext2D){
@@ -131,7 +168,11 @@ export class Port {
         }
     }
 
-    canConnect(dst : Port) : boolean {
+    drawDraggedPort(move_pos : Vec2){       
+        Canvas.one.drawLine(this.position, move_pos, "blue") ;
+    }
+
+    fitPortType(dst : Port) : boolean {
         const pairs = [
             [ PortType.bottom, PortType.top],
             [ PortType.top , PortType.bottom],
@@ -143,8 +184,12 @@ export class Port {
         return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
     }
 
+    canConnect(dst : Port) : boolean {
+        return this.fitPortType(dst) && this.isNearPort(dst);
+    }
+
     connect(port : Port) : void {   
-        assert(this.canConnect(port));
+        assert(this.fitPortType(port));
 
         let src : Port;
         let dst : Port;
@@ -196,7 +241,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 export class Main {
     static one : Main;
     canvas : Canvas;
-    editor : Editor;
 
     constructor(){
         Main.one = this;
@@ -229,8 +273,7 @@ export class Main {
             new UltrasonicDistanceSensorBlock({ inToolbox : true })
         ];
 
-
-        this.editor = new Editor({ blocks : tools });
+        new Editor(tools);
 
         const canvas_html = document.getElementById('world') as HTMLCanvasElement;
         this.canvas = new Canvas(canvas_html);
@@ -266,7 +309,7 @@ function fetchImage(image_url : string){
 }
 
 function updateCameraImage(image_file_name : string){
-    const blocks = Main.one.editor.blocks;
+    const blocks = Editor.one.blocks;
     const cameras = blocks.filter(x => x instanceof CameraBlock);
     for(const camera of cameras){
         const image_url = `static/lib/diagram/img/${image_file_name}`;
@@ -275,7 +318,7 @@ function updateCameraImage(image_file_name : string){
 }
 
 function updateFaceDetection(face : number[]){
-    const face_detection = Main.one.editor.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
+    const face_detection = Editor.one.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
     if(face_detection != undefined){
         face_detection.setFace(face);
 
@@ -284,7 +327,7 @@ function updateFaceDetection(face : number[]){
 }
 
 function updateDistanceSensor(distance : number){
-    const distance_sensor = Main.one.editor.blocks.find(x => x instanceof UltrasonicDistanceSensorBlock) as UltrasonicDistanceSensorBlock;
+    const distance_sensor = Editor.one.blocks.find(x => x instanceof UltrasonicDistanceSensorBlock) as UltrasonicDistanceSensorBlock;
     if(distance_sensor != undefined){
         distance_sensor.setDistance(distance);
 
@@ -381,7 +424,7 @@ async function startProcedures() {
     isRunning = true;
     stopFlag = false;
 
-    const input_blocks = Main.one.editor.blocks.filter(x => x instanceof InputBlock);
+    const input_blocks = Editor.one.blocks.filter(x => x instanceof InputBlock);
     input_blocks.forEach(x => x.updatePort());
 
 
@@ -413,7 +456,7 @@ export async function asyncBodyOnLoad(){
     sleepIcon    = document.getElementById("sleep-icon") as HTMLImageElement;
     
     $("clear-btn").addEventListener("click", (ev : MouseEvent)=>{
-        Main.one.editor.clearBlock();
+        Editor.one.clearBlock();
     });
 
     startButton = $("start-btn") as HTMLButtonElement;

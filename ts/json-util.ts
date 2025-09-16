@@ -87,7 +87,7 @@ export function setDragDrop(canvas : HTMLCanvasElement){
                 }
 
                 // draw input elements in blocks.
-                Main.one.editor.blocks.forEach(x => x.setBlockPortPosition(x.position));
+                Editor.one.blocks.forEach(x => x.setBlockPortPosition(x.position));
                 Canvas.one.requestUpdateCanvas();
             };
 
@@ -101,7 +101,7 @@ export function setDragDrop(canvas : HTMLCanvasElement){
 export function saveJson(){
     let port_idx = 0;
 
-    const blocks = Main.one.editor.blocks;
+    const blocks = Editor.one.blocks;
     for(const [idx, block] of blocks.entries()){
         block.idx = idx;
 
@@ -115,7 +115,7 @@ export function saveJson(){
 }
 
 function loadJson(objs:any[]){
-    Main.one.editor.clearBlock();
+    Editor.one.clearBlock();
     
     const block_map = new Map<number, Block>();
     const port_map = new Map<number, Port>();
@@ -139,7 +139,7 @@ function loadJson(objs:any[]){
             port_map.set(port.idx, port);
         }
 
-        Main.one.editor.addBlock(block);
+        Editor.one.addBlock(block);
     }
 
     Editor.one.blocks.forEach(x => x.setPortPositions());
@@ -160,7 +160,7 @@ function loadJson(objs:any[]){
         }
     }
 
-    setContext2D(Canvas.one.ctx, Editor.one);
-    Canvas.one.layoutRoot();
+    Editor.one.setContext2D(Canvas.one.ctx);
+    Editor.one.layoutRoot();
 }
 }

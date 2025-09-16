@@ -51,12 +51,9 @@ export abstract class Block extends UI {
         const block = makeBlockByTypeName(this.constructor.name);
 
         block.position = this.position.copy();
+        block.boxSize  = this.boxSize.copy();
         block.ctx      = this.ctx;
-        for(const [i, port] of this.ports.entries()){
-            block.ports[i].position = port.position.copy();
-        }
-
-        block.setBoxSize();
+        block.ports    = this.ports.map(x => x.copyPort(block));
 
         return block;
     }
@@ -83,30 +80,6 @@ export abstract class Block extends UI {
         return this.boxSize!.y;
     }
 
-    getUIPortFromPosition(pos : Vec2) : UI | Port | undefined {
-        const port = this.getPortFromPosition(pos);
-        if(port != undefined){
-            return port;
-        }
-
-        const target = super.getUIPortFromPosition(pos);
-        if(target != undefined){
-            return target;
-        }
-
-        const [xa, ya, xb, yb] = this.marginBox();
-
-        if(xa <= pos.x && pos.x < xb){
-            if(ya <= pos.y && pos.y < yb){
-                return this;
-            }
-        }
-    }
-
-    getPortFromPosition(pos : Vec2) : Port | undefined {
-        return this.ports.find(x => x.isNear(pos));
-    }
-
     moveDiff(diff : Vec2) : void {
         const new_position = this.position.add(diff);
         this.setBlockPortPosition(new_position);
@@ -114,6 +87,20 @@ export abstract class Block extends UI {
 
     outputPorts() : Port[] {
         return this.ports.filter(x => x.type == PortType.outputPort);
+    }
+
+    drawBoxes() : [number, number, number, number][] {
+        return [ this.drawBox() ];
+    }
+
+    inDrawBoxes(pos : Vec2) : boolean {
+        for(const [xa, ya, xb, yb] of this.drawBoxes()){
+            if(xa <= pos.x && pos.x < xb && ya <= pos.y && pos.y < yb){
+                return true;
+            }
+        }
+
+        return false;
     }
 
     nextDataflowBlocks() : Block[] {
@@ -150,7 +137,7 @@ export abstract class Block extends UI {
         }
         port1.connect(port2);
 
-        Canvas.one.layoutRoot();
+        Editor.one.layoutRoot();
         msg(`connect block`);
     }
 
@@ -160,8 +147,7 @@ export abstract class Block extends UI {
         if(this instanceof IfBlock){
             const y2 = ya + nest_h1;
 
-            this.conditionPort.position.x = xb - Port.radius;
-            this.conditionPort.position.y = 0.5 * (ya + y2);
+            this.conditionPort.setPortPositionXY(xb - Port.radius, 0.5 * (ya + y2));
         }
         else{
 
@@ -173,8 +159,7 @@ export abstract class Block extends UI {
                 for(const [i, port] of ports.entries()){
                     const p = (i + 1) / (ports.length + 1);
                     const x = xa * (1 - p) + xb * p;
-                    port.position.x = x;
-                    port.position.y = y;
+                    port.setPortPositionXY(x, y)
                 }
             }
         }
@@ -186,13 +171,15 @@ export abstract class Block extends UI {
     }
 
     drawOutline(points : ([number, number] | Port | null)[], color : string = blockLineColor){
-        const canvas = Canvas.one;
-        if(canvas.draggedUI == this){
+        const draggedUI = Canvas.one.draggedUI;
+        if(draggedUI instanceof ActionBlock){
+            if(draggedUI == this || ){
 
-            this.ctx.globalAlpha = 0.5;
-        }
-        else if(canvas.nearPorts.length != 0 && canvas.nearPorts[1].parent == this){
-            this.ctx.globalAlpha = 0.5;
+                this.ctx.globalAlpha = 0.5;
+            }
+            else if(draggedUI.prevBlock() == this){
+                this.ctx.globalAlpha = 0.5;
+            }
         }
 
         this.ctx.fillStyle   = this.backgroundColor!;
@@ -266,7 +253,7 @@ export abstract class Block extends UI {
     canConnectNearPortPair(block : Block) : Port[] {
         for(const port1 of this.ports){
             for(const port2 of block.ports){
-                if(port1.canConnect(port2) && port1.position.distance(port2.position) <= nearPortDistance){
+                if(port1.canConnect(port2)){
                     return [port1, port2];
                 }
             }
