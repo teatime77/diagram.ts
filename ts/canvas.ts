@@ -11,6 +11,7 @@ export class Canvas {
     ctx : CanvasRenderingContext2D;
 
     draggedUI? : Block | Port | Button;
+    prevPortOfDraggedUI : Port | undefined;
 
     pointerId : number = NaN;
 
@@ -57,6 +58,7 @@ export class Canvas {
 
     pointerdown(ev:PointerEvent){
         this.moved = false;
+        this.prevPortOfDraggedUI = undefined;
 
         const pos = this.getPositionInCanvas(ev);
         const target = Editor.one.getPortBlockFromPosition(pos);
@@ -100,16 +102,14 @@ export class Canvas {
         }
     }
 
-    dragBlock(block : Block){
+    dragBlock(block : Block) : void {
         const diff = this.movePos.sub(this.downPos);
         const dragged_block_pos = this.uiOrgPos.add(diff);
-        block.setBlockPortPosition( dragged_block_pos );
         if(block instanceof ActionBlock){
-
-            const changed = block.checkTopPortConnection();
-            if(changed){
-                Editor.one.layoutRoot();
-            }
+            block.adjustActionPosition(dragged_block_pos);
+        }
+        else{
+            block.setBlockPortPosition( dragged_block_pos );
         }
     }
 
@@ -130,6 +130,11 @@ export class Canvas {
         if(this.draggedUI instanceof Block){
 
             this.dragBlock(this.draggedUI);
+
+            if(this.draggedUI instanceof ActionBlock){
+
+                this.prevPortOfDraggedUI = this.draggedUI.checkTopPortConnection();
+            }
         }
 
         this.requestUpdateCanvas();
@@ -161,6 +166,25 @@ export class Canvas {
             }
             else if(this.draggedUI instanceof Block){
                 this.dragBlock(this.draggedUI);
+
+                if(this.draggedUI instanceof ActionBlock){
+
+                    this.prevPortOfDraggedUI = this.draggedUI.checkTopPortConnection();
+
+                    const top_port  = this.draggedUI.topPort;
+                    const prev_port = this.draggedUI.prevPort();
+                    if(prev_port != this.prevPortOfDraggedUI){
+                        if(prev_port != undefined){
+                            prev_port.disconnect(top_port);
+                        }
+
+                        if(this.prevPortOfDraggedUI != undefined){
+                            this.prevPortOfDraggedUI.connect(top_port);
+                        }
+
+                        Editor.one.layoutRoot();
+                    }
+                }
             }
         }
         else{
@@ -175,6 +199,7 @@ export class Canvas {
         this.canvas.classList.remove('dragging');
 
         this.draggedUI = undefined;
+        this.prevPortOfDraggedUI = undefined;
         this.pointerId = NaN;
 
         this.requestUpdateCanvas();

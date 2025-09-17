@@ -171,15 +171,14 @@ export abstract class Block extends UI {
     }
 
     drawOutline(points : ([number, number] | Port | null)[], color : string = blockLineColor){
-        const draggedUI = Canvas.one.draggedUI;
-        if(draggedUI instanceof ActionBlock){
-            if(draggedUI == this || ){
+        if(this == Canvas.one.draggedUI){
 
-                this.ctx.globalAlpha = 0.5;
-            }
-            else if(draggedUI.prevBlock() == this){
-                this.ctx.globalAlpha = 0.5;
-            }
+            this.ctx.globalAlpha = 0.5;
+        }
+        else if(Canvas.one.prevPortOfDraggedUI != undefined && Canvas.one.prevPortOfDraggedUI.parent == this){
+
+            this.ctx.globalAlpha = 0.5;
+            color = "red";
         }
 
         this.ctx.fillStyle   = this.backgroundColor!;

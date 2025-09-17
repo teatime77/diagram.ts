@@ -33,8 +33,12 @@ export abstract class ActionBlock extends Block {
         yield this;
     }
 
+    prevPort() : Port | undefined {
+        return this.topPort.prevPort();
+    }
+
     prevBlock() : ActionBlock | undefined {        
-        const prev_port = this.bottomPort.prevPort();
+        const prev_port = this.prevPort();
         if(prev_port != undefined){
             return prev_port.parent as ActionBlock;
         }
@@ -51,25 +55,11 @@ export abstract class ActionBlock extends Block {
         return undefined;
     }
 
-    checkTopPortConnection() : boolean {
-        const prev_port = this.topPort.prevPort();
-        if(prev_port != undefined){
-            if(! this.topPort.isNearPort(prev_port)){
-
-                prev_port.disconnect(this.topPort);
-                return true;
-            }
-        }
-        else{
-            const ports = allActions().filter(x => x != this).map(x => x.ports).flat();
-            const port = ports.find(x => x.canConnect(this.topPort));
-            if(port != undefined){
-                port.connect(this.topPort);
-                return true;
-            }
-        }
-
-        return false;
+    checkTopPortConnection(){
+        const ports = allActions().filter(x => x != this).map(x => x.ports).flat();
+        const port = ports.find(x => x.canConnect(this.topPort));
+        
+        return port;
     }
 
     disconnectSeperatedPort() : boolean {
