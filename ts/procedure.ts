@@ -115,6 +115,25 @@ export abstract class ActionBlock extends Block {
 
         this.drawIOPorts();
     }
+
+    dump(nest : number){
+        super.dump(nest);
+
+        if(this instanceof NestBlock){
+            const inner_block = this.innerBlock();
+            if(inner_block != undefined){
+                msg(`${tab(nest)}→`);
+                inner_block.dump(nest + 1)
+            }
+        }
+
+        const next_block = this.nextBlock();
+        if(next_block != undefined){
+            msg(`${tab(nest)}↓`);
+            next_block.dump(nest)
+        }
+    }
+
 }
 
 export class TTSBlock extends ActionBlock {
@@ -166,6 +185,20 @@ export class SleepBlock extends ActionBlock {
     async run(){
         const second = this.inputPort.numberValue();
         await sleep(second * 1000);
+    }
+}
+
+export class TriggerGate extends ActionBlock {
+    inPorts  : Port[] = [ new Port(this, PortType.inputPort) ];
+    outPorts : Port[] = [ new Port(this, PortType.outputPort) ];
+
+    constructor(data : Attr){
+        super(data);
+        this.ports.push(...this.inPorts, ...this.outPorts);
+    }
+
+    setBoxSize() : void {
+        this.boxSize = new Vec2(200, 80);
     }
 }
 
@@ -303,7 +336,7 @@ export abstract class NestBlock extends ActionBlock {
 export class IfBlock extends NestBlock {   
     truePort      = new Port(this, PortType.bottom);
 
-    conditionPort = new Port(this, PortType.inputPort);
+    conditionPort = new Port(this, PortType.condition);
 
     constructor(data : Attr){
         super(data);

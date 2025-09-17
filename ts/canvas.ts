@@ -205,6 +205,8 @@ export class Canvas {
         this.requestUpdateCanvas();
 
         this.moved = false;
+
+        dumpActions();
     }
 
     resizeCanvas() {
@@ -225,7 +227,6 @@ export class Canvas {
         }
 
         Editor.one.layoutRoot();
-        Editor.one.dumpBlocks();
 
         this.requestUpdateCanvas();
     }
@@ -311,10 +312,6 @@ export class Editor {
     draw(){
         this.tools.forEach(x => x.draw());
         this.blocks.forEach(x => x.draw());
-    }
-
-    dumpBlocks(){
-
     }
 
     getPortBlockFromPosition(pos : Vec2) : Port | Block | undefined {

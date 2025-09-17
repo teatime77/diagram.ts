@@ -26,6 +26,7 @@ export class DataType {
 
 export class Port {
     static radius = 10;        
+    static Count = 0;
 
     idx : number = 0;
     name : string;
@@ -40,20 +41,18 @@ export class Port {
     value : any | undefined;
 
     constructor(parent : Block, type : PortType, name : string = ""){
+        this.idx    = Port.Count++;
         this.parent = parent;
         this.type   = type;
         this.name   = name;
     }
 
     str() : string {
-        return "port";
+        return `port idx:${this.idx} type:${PortType[this.type]} pos:${this.position.toString()}`;
     }
 
-    copyPort(parent : Block) : Port {
-        const port = new Port(parent, this.type);
-        port.setPortPositionXY(this.position.x, this.position.y);
-
-        return port;
+    dumpPort(nest : number){
+        msg(`${tab(nest)}${this.str()}`);
     }
 
     makeObj() : any{
@@ -254,6 +253,8 @@ export class Main {
             ,
             new SleepBlock({ inToolbox : true })
             ,
+            new TriggerGate({ inToolbox : true })
+            ,
             new InputTextBlock({ inToolbox : true })
             ,
             new InputNumberBlock({ inToolbox : true })
@@ -271,6 +272,8 @@ export class Main {
             new CalcBlock({ inToolbox : true })
             ,
             new UltrasonicDistanceSensorBlock({ inToolbox : true })
+            ,
+            new ConditionGate({ inToolbox : true })
         ];
 
         new Editor(tools);
@@ -407,6 +410,11 @@ export function getTopActions() : ActionBlock[] {
 
     return top_blocks;
 }
+
+export function dumpActions(){
+    getTopActions().forEach(x => x.dump(0));
+}
+
 
 export async function runBlockChain(top_block : ActionBlock){
     for(let block : ActionBlock | undefined = top_block; block != undefined; block = block.nextBlock()){

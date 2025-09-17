@@ -26,6 +26,7 @@ export enum PortType {
 
     inputPort,
     outputPort,
+    condition,
 }
 
 export abstract class Block extends UI {
@@ -53,7 +54,6 @@ export abstract class Block extends UI {
         block.position = this.position.copy();
         block.boxSize  = this.boxSize.copy();
         block.ctx      = this.ctx;
-        block.ports    = this.ports.map(x => x.copyPort(block));
 
         return block;
     }
@@ -144,23 +144,22 @@ export abstract class Block extends UI {
     setPortPositions(){     
         const [xa, ya, xb, yb] = this.drawBox();
 
-        if(this instanceof IfBlock){
+        const condition_port = this.ports.find(x => x.type == PortType.condition);
+        if(condition_port != undefined){
             const y2 = ya + nest_h1;
 
-            this.conditionPort.setPortPositionXY(xb - Port.radius, 0.5 * (ya + y2));
+            condition_port.setPortPositionXY(xb - Port.radius, 0.5 * (ya + y2));
         }
-        else{
 
-            const input_ports  = this.ports.filter(x => x.type == PortType.inputPort);
-            const output_ports = this.ports.filter(x => x.type == PortType.outputPort);
+        const input_ports  = this.ports.filter(x => x.type == PortType.inputPort);
+        const output_ports = this.ports.filter(x => x.type == PortType.outputPort);
 
-            for(const ports of [ input_ports, output_ports]){
-                const y = (ports == input_ports ? ya + notchRadius: yb - notchRadius);
-                for(const [i, port] of ports.entries()){
-                    const p = (i + 1) / (ports.length + 1);
-                    const x = xa * (1 - p) + xb * p;
-                    port.setPortPositionXY(x, y)
-                }
+        for(const ports of [ input_ports, output_ports]){
+            const y = (ports == input_ports ? ya + notchRadius: yb - notchRadius);
+            for(const [i, port] of ports.entries()){
+                const p = (i + 1) / (ports.length + 1);
+                const x = xa * (1 - p) + xb * p;
+                port.setPortPositionXY(x, y)
             }
         }
     }
@@ -216,7 +215,7 @@ export abstract class Block extends UI {
     }
 
     IOPorts(){
-        return this.ports.filter(x =>  x.type == PortType.inputPort || x.type == PortType.outputPort);
+        return this.ports.filter(x =>  x.type == PortType.inputPort || x.type == PortType.outputPort || x.type == PortType.condition);
     }
 
     drawIOPorts(){
@@ -317,6 +316,15 @@ export abstract class Block extends UI {
         }
 
         this.ctx.restore();
+    }
+
+    str() : string {
+        return `${this.constructor.name} idx:${this.idx} pos:${this.position.toString()}`
+    }
+
+    dump(nest : number){
+        msg(`${tab(nest)}${this.str()}`);
+        this.ports.forEach(x => x.dumpPort(nest + 1));
     }
 }
 
@@ -897,6 +905,7 @@ export class CompareBlock extends InputTextBlock {
 
         this.input.value = "a == a";
     }
+
     setBoxSize() : void {
         this.boxSize = new Vec2(200, 80);
     }
@@ -935,6 +944,21 @@ export class CompareBlock extends InputTextBlock {
     }
 }
 
+export class ConditionGate extends FunctionBlock {
+    conditionPort : Port = new NumberPort(this, PortType.condition);
+    inPorts : Port[] = [ new Port(this, PortType.inputPort) ];
+    outPorts : Port[] = [ new Port(this, PortType.outputPort) ];
+
+    constructor(data : Attr){
+        super(data);
+        this.ports = [this.conditionPort].concat(this.inPorts, this.outPorts);
+    }
+
+    setBoxSize() : void {
+        this.boxSize = new Vec2(200, 80);
+    }
+}
+
 export function makeBlockByTypeName(typeName : string) : Block {
     switch(typeName){
     case InputTextBlock.name:                return new InputTextBlock({});
@@ -951,6 +975,8 @@ export function makeBlockByTypeName(typeName : string) : Block {
     case JoyStickBlock.name:                 return new JoyStickBlock({});
     case UltrasonicDistanceSensorBlock.name: return new UltrasonicDistanceSensorBlock({});
     case CalcBlock.name:                     return new CalcBlock({});
+    case ConditionGate.name:                 return new ConditionGate({});
+    case TriggerGate.name:                   return new TriggerGate({});
     default:
         throw new MyError();
     }

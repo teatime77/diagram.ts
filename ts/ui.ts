@@ -204,7 +204,7 @@ export abstract class UI {
     }
 
     dump(nest : number){
-        msg(`${" ".repeat(nest * 4)}${this.str()}`);
+        msg(`${tab(nest)}${this.str()}`);
     }
 
     drawRidgeRect(ctx : CanvasRenderingContext2D, x : number, y : number, width : number, height : number, ridgeWidth : number, isInset = false) {
@@ -309,5 +309,7 @@ export abstract class Node extends UI {
     }
 }
 
-
+export function tab(nest : number) : string {
+    return " ".repeat(nest * 4);
+}
 }
