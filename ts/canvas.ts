@@ -252,4 +252,89 @@ export class Canvas {
     }
 }
 
+
+export class Editor {
+    static one : Editor;
+    tools  : Block[];
+    blocks : Block[] = [];
+
+    constructor(tools : Block[]){
+        Editor.one = this;
+
+        this.tools = tools.slice();
+
+        let x = 10;
+        let y = 60;
+        for(const block of this.tools){
+            block.setBoxSize();
+            block.setBlockPortPosition(new Vec2(x, y));
+
+            y += block.boxSize!.y + 10;
+        }
+
+        this.tools.forEach(x => x.setPortPositions());
+    }
+
+    allBlocks() : Block[] {
+        return this.tools.concat(this.blocks);
+    }
+
+    clearBlock() : void {        
+        this.blocks.forEach(x => x.clearBlock());
+        this.blocks = [];
+    }
+
+    addBlock(block : Block){
+        this.blocks.push(block);
+    }
+
+    setContext2D(ctx : CanvasRenderingContext2D){
+        this.allBlocks().forEach(x => x.ctx = ctx);
+    }
+
+    setNestBoxSize() : void {
+        const top_nest_actions = getTopActions().filter(x => x instanceof NestBlock);
+        for(const top_action of top_nest_actions){
+            const nest_blocks = Array.from(top_action.dependantActions()).filter(x => x instanceof NestBlock);
+            for(const block of nest_blocks){
+                block.setBoxSize();
+            }
+        }
+    }
+
+    layoutRoot(){
+        Editor.one.setNestBoxSize();
+        const top_actions = getTopActions();
+        top_actions.forEach(x => x.adjustActionPosition(x.position));
+    }
+
+    draw(){
+        this.tools.forEach(x => x.draw());
+        this.blocks.forEach(x => x.draw());
+    }
+
+    dumpBlocks(){
+
+    }
+
+    getPortBlockFromPosition(pos : Vec2) : Port | Block | undefined {
+        const blocks = this.allBlocks().filter(x => x.inMarginBox(pos));
+
+        for(const block of blocks){
+            const port = block.ports.find(x => x.isNear(pos));
+            if(port != undefined){
+                return port;
+            }
+        }
+
+        for(const block of blocks){
+            if(block.inDrawBoxes(pos)){
+                return block;
+            }
+        }
+
+        return undefined;
+    }
+}
+
 }
