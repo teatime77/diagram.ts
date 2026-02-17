@@ -1,5 +1,6 @@
-namespace diagram_ts {
-//
+import { msg } from "@i18n";
+import { urlOrigin } from "./diagram";
+
 export async function sendData(dataToSend : any) : Promise<any> {
     const url = `${urlOrigin}/send_data`;
     // msg(`post:[${url}]`);
@@ -29,5 +30,4 @@ export async function sendData(dataToSend : any) : Promise<any> {
         return undefined;
     }
     
-}
 }

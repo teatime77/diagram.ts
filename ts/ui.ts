@@ -1,5 +1,8 @@
-namespace diagram_ts {
-//
+import { assert, MyError, msg, Vec2 } from "@i18n";
+import { notchRadius } from "./block";
+import { Canvas } from "./canvas";
+import { ActionBlock, InfiniteLoop } from "./procedure";
+
 const TextSizeFill = 8;
 export const textColor = "black";
 
@@ -311,5 +314,4 @@ export abstract class Node extends UI {
 
 export function tab(nest : number) : string {
     return " ".repeat(nest * 4);
-}
 }

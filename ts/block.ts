@@ -1,8 +1,13 @@
-///<reference path="export.ts" />
 ///<reference path="ui.ts" />
 
-namespace diagram_ts {
-//
+import { assert, msg, MyError, sum, Vec2 } from "@i18n";
+import { Term, Rational, ConstNum, RefVar, App, parseMath, SyntaxError } from "@parser";
+import { Editor, Canvas } from "./canvas";
+import { Port, NumberPort, TextPort, cameraIcon, cameraImg, distanceSensorIcon, motorIcon } from "./diagram";
+import { sendData } from "./diagram_util";
+import { nest_h1, IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate } from "./procedure";
+import { tab, UI, Attr } from "./ui";
+
 export const notchRadius = 10;        
 export const inputHeight = 21;
 
@@ -11,13 +16,6 @@ const nearPortDistance = 10;
 
 const rangeWidth  = 150;
 const numberWidth = 45;
-
-export let cameraIcon : HTMLImageElement;
-export let motorIcon  : HTMLImageElement;
-export let cameraImg : HTMLImageElement;
-export let distanceSensorIcon : HTMLImageElement;
-export let ttsIcon : HTMLImageElement;
-export let sleepIcon : HTMLImageElement;
 
 export enum PortType {
     unknown,
@@ -918,7 +916,7 @@ export class CompareBlock extends InputTextBlock {
             expr = parseMath(this.input.value.trim()) as App;
         }
         catch(error){
-            if(error instanceof parser_ts.SyntaxError){
+            if(error instanceof SyntaxError){
                 msg(`syntax error`);
             }
             else{
@@ -980,6 +978,4 @@ export function makeBlockByTypeName(typeName : string) : Block {
     default:
         throw new MyError();
     }
-}
-
 }

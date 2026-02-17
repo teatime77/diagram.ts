@@ -1,9 +1,24 @@
-namespace diagram_ts {
-//
+import { msg, MyError, assert, remove, $, parseURL, Vec2 } from "@i18n";
+import { append } from "../../i18n.ts/ts/util";
+import { PortType, notchRadius, InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoMotorBlock, CameraBlock, FaceDetectionBlock, CalcBlock, UltrasonicDistanceSensorBlock, ConditionGate, InputBlock } from "./block";
+import { Canvas, Editor } from "./canvas";
+import { sendData } from "./diagram_util";
+import { setDragDrop, saveJson } from "./json-util";
+import { IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate, ActionBlock } from "./procedure";
+import { tab } from "./ui";
+import { Block } from "./block"
+
 export let urlOrigin : string;
 let startButton : HTMLButtonElement;
 export let stopFlag : boolean = false;
 let isRunning : boolean = false;
+
+export let cameraIcon : HTMLImageElement;
+export let motorIcon  : HTMLImageElement;
+export let cameraImg : HTMLImageElement;
+export let distanceSensorIcon : HTMLImageElement;
+export let ttsIcon : HTMLImageElement;
+export let sleepIcon : HTMLImageElement;
 
 class Variable {
     name! : string;
@@ -454,7 +469,7 @@ async function startProcedures() {
 export async function asyncBodyOnLoad(){
     msg("loaded");
     let pathname  : string;
-    [ urlOrigin, pathname, ] = i18n_ts.parseURL();
+    [ urlOrigin, pathname, ,] = parseURL();
     msg(`origin:[${urlOrigin}] path:[${pathname}]`);
 
     cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
@@ -491,6 +506,4 @@ export async function asyncBodyOnLoad(){
     if( urlOrigin != "http://127.0.0.1:5500"){
         await periodicTask();
     }
-}
-
 }

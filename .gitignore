@@ -9,3 +9,4 @@ public/lib/diagram
 ts/@types
 copy.sh
 public/static/lib/diagram/img/camera.png
+public/lib/tsconfig.tsbuildinfo

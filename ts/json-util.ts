@@ -1,5 +1,8 @@
-namespace diagram_ts {
-//
+import { msg, assert, sleep } from "@i18n";
+import { Block, makeBlockByTypeName } from "./block";
+import { repaintCount, Canvas, Editor } from "./canvas";
+import { Port } from "./diagram";
+
 export function downloadJson(data : any){
     // Convert the object to a JSON string
     const jsonData = JSON.stringify(data, null, 2); // The last two arguments are for formatting (indentation)
@@ -162,5 +165,4 @@ function loadJson(objs:any[]){
 
     Editor.one.setContext2D(Canvas.one.ctx);
     Editor.one.layoutRoot();
-}
 }
