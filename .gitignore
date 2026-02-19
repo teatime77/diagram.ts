@@ -12,3 +12,4 @@ public/static/lib/diagram/img/camera.png
 public/lib/tsconfig.tsbuildinfo
 dist
 tsconfig.tsbuildinfo
+lib

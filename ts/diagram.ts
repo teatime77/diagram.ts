@@ -1,5 +1,4 @@
-import { msg, MyError, assert, remove, $, parseURL, Vec2 } from "@i18n";
-import { append } from "../../i18n.ts/ts/util";
+import { msg, MyError, assert, remove, $, parseURL, Vec2, append } from "@i18n";
 import { PortType, notchRadius, InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoMotorBlock, CameraBlock, FaceDetectionBlock, CalcBlock, UltrasonicDistanceSensorBlock, ConditionGate, InputBlock } from "./block";
 import { Canvas, Editor } from "./canvas";
 import { sendData } from "./diagram_util";
