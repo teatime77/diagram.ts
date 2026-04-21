@@ -1,4 +1,6 @@
 import { msg, MyError, assert, remove, $, parseURL, Vec2, append } from "@i18n";
+import { initWebGPU } from "@webgpu";
+import { initGame } from "@game"
 import { PortType, notchRadius, InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoMotorBlock, CameraBlock, FaceDetectionBlock, CalcBlock, UltrasonicDistanceSensorBlock, ConditionGate, InputBlock } from "./block";
 import { Canvas, Editor } from "./canvas";
 import { sendData } from "./diagram_util";
@@ -247,7 +249,24 @@ export class TextPort extends Port {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await asyncBodyOnLoad();
+    msg("loaded in diagram-ts");
+    let pathname  : string;
+    let params    : Map<string, string>;
+    [ urlOrigin, pathname, params,] = parseURL();
+    msg(`origin:[${urlOrigin}] path:[${pathname}]`);
+
+    if(pathname.startsWith("/webgpu")){
+        await initWebGPU();
+    }
+    else if(pathname.startsWith("/game")){
+        await initGame();        
+    }
+    else if(pathname.startsWith("/diagram")){
+        await initDiagram();        
+    }
+    else{
+        msg("no project")
+    }
 });  
 
 
@@ -465,12 +484,7 @@ async function startProcedures() {
     startButton.innerText = "Start";
 }
 
-export async function asyncBodyOnLoad(){
-    msg("loaded");
-    let pathname  : string;
-    [ urlOrigin, pathname, ,] = parseURL();
-    msg(`origin:[${urlOrigin}] path:[${pathname}]`);
-
+export async function initDiagram(){
     cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
     motorIcon  = document.getElementById("motor-icon") as HTMLImageElement;
     distanceSensorIcon  = document.getElementById("distance-sensor-icon") as HTMLImageElement;
