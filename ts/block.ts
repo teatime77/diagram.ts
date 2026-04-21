@@ -3,7 +3,7 @@
 import { assert, msg, MyError, sum, Vec2 } from "@i18n";
 import { Term, Rational, ConstNum, RefVar, App, parseMath, SyntaxError } from "@parser";
 import { Editor, Canvas } from "./canvas";
-import { Port, NumberPort, TextPort, cameraIcon, cameraImg, distanceSensorIcon, motorIcon } from "./diagram";
+import { Port, NumberPort, TextPort, cameraIcon, cameraImg, distanceSensorIcon, motorIcon } from "./index";
 import { sendData } from "./diagram_util";
 import { nest_h1, IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate } from "./procedure";
 import { tab, UI, Attr } from "./ui";

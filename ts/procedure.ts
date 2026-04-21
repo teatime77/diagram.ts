@@ -1,6 +1,6 @@
 import { msg, Speech, sleep, MyError, assert, setVoiceLanguageCode, Vec2 } from "@i18n";
 import { PortType, notchRadius } from "./block";
-import { Port, allActions, TextPort, NumberPort, runBlockChain, stopFlag, ttsIcon, sleepIcon } from "./diagram";
+import { Port, allActions, TextPort, NumberPort, runBlockChain, stopFlag, ttsIcon, sleepIcon } from "./index";
 import { tab, Attr } from "./ui";
 import { Block } from "./block";
 

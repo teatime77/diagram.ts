@@ -1,7 +1,7 @@
 import { msg, assert, sleep } from "@i18n";
 import { Block, makeBlockByTypeName } from "./block";
 import { repaintCount, Canvas, Editor } from "./canvas";
-import { Port } from "./diagram";
+import { Port } from "./index";
 
 export function downloadJson(data : any){
     // Convert the object to a JSON string

@@ -1,7 +1,7 @@
 import { msg, Vec2 } from "@i18n";
 import { Button } from "./ui";
 import { Block, InputRangeBlock } from "./block";
-import { Port, dumpActions, getTopActions } from "./diagram";
+import { Port, dumpActions, getTopActions } from "./index";
 import { ActionBlock, NestBlock } from "./procedure";
 
 export let repaintCount = 0;

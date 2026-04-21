@@ -1,5 +1,5 @@
 import { msg } from "@i18n";
-import { urlOrigin } from "./diagram";
+import { urlOrigin } from "./index";
 
 export async function sendData(dataToSend : any) : Promise<any> {
     const url = `${urlOrigin}/send_data`;
