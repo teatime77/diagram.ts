@@ -6,7 +6,7 @@ import { InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoM
 import { Canvas, Editor, getTopActions } from "./canvas";
 import { fetchImage, initUI, initURL, pathName, repaintCount, sendData, startButton, theCanvas, urlOrigin } from "./diagram_util";
 import { saveJson, theEditor } from "./json-util";
-import { IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate, ActionBlock, makeBlockByTypeName } from "./procedure";
+import { IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate, ActionBlock, makeBlockByTypeName, PlayMovieBlock, PlayGameBlock, PlayWebGPUBlock } from "./procedure";
 import { Block } from "./block"
 import { Port } from "./port";
 
@@ -91,11 +91,17 @@ export class Main {
             new UltrasonicDistanceSensorBlock({ inToolbox : true })
             ,
             new ConditionGate({ inToolbox : true })
+            ,
+            new PlayMovieBlock({ inToolbox : true })
+            ,
+            new PlayGameBlock({ inToolbox : true })
+            ,
+            new PlayWebGPUBlock({ inToolbox : true })
         ];
 
         new Editor(tools);
 
-        const canvas_html = document.getElementById('world') as HTMLCanvasElement;
+        const canvas_html = document.getElementById('world-diagram') as HTMLCanvasElement;
         this.canvas = new Canvas(canvas_html);
 
         // Initial resize when the page loads

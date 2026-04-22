@@ -99,3 +99,19 @@ export async function sendData(dataToSend : any) : Promise<any> {
     }
     
 }
+
+export function switchActiveCanvas(activeId: string) {
+    const ids = ["world-diagram", "world-game", "world-webgpu", "world-movie"];
+    for (const id of ids) {
+        const canvas = document.getElementById(id);
+        if (canvas) {
+            if (id === activeId) {
+                canvas.style.display = "block";
+                canvas.style.zIndex = "10";
+            } else {
+                canvas.style.display = "none";
+                canvas.style.zIndex = "0";
+            }
+        }
+    }
+}

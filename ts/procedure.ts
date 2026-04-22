@@ -5,6 +5,10 @@ import { Block, makeFunctionBlockByTypeName } from "./block";
 import { NumberPort, Port, TextPort } from "./port";
 import { nest_h1, notchRadius, PortType, sleepIcon, ttsIcon } from "./diagram_util";
 import { allActions } from "./canvas";
+import { switchActiveCanvas } from "./diagram_util";
+import { playAllGraph } from "@movie";
+import { playGameWorld } from "@game";
+import { playWebGPUPackage } from "@webgpu";
 
 const nest_h2 = 30;
 const nest_h3 = 20;
@@ -417,6 +421,52 @@ export class InfiniteLoop extends NestBlock {
     }
 }
 
+export class PlayMovieBlock extends ActionBlock {
+    constructor(data : Attr){
+        super(data);
+    }
+    setBoxSize() : void {
+        this.boxSize = new Vec2(200, 60);
+    }
+    async run(){
+        await playAllGraph();
+    }
+}
+
+export class PlayGameBlock extends ActionBlock {
+    inputPort = new TextPort(this, PortType.inputPort);
+    constructor(data : Attr){
+        super(data);
+        this.ports.push(this.inputPort);
+    }
+    setBoxSize() : void {
+        this.boxSize = new Vec2(200, 60);
+    }
+    async run(){
+        const target = this.inputPort.stringValue().trim();
+        switchActiveCanvas("world-game");
+        await playGameWorld(target, () => stopFlag);
+        switchActiveCanvas("world-diagram");
+    }
+}
+
+export class PlayWebGPUBlock extends ActionBlock {
+    inputPort = new TextPort(this, PortType.inputPort);
+    constructor(data : Attr){
+        super(data);
+        this.ports.push(this.inputPort);
+    }
+    setBoxSize() : void {
+        this.boxSize = new Vec2(200, 60);
+    }
+    async run(){
+        const pkgName = this.inputPort.stringValue().trim();
+        switchActiveCanvas("world-webgpu");
+        await playWebGPUPackage(pkgName);
+        switchActiveCanvas("world-diagram");
+    }
+}
+
 export function makeActionBlockByTypeName(typeName : string) : ActionBlock | undefined {
     switch(typeName){
 
@@ -425,6 +475,9 @@ export function makeActionBlockByTypeName(typeName : string) : ActionBlock | und
     case TTSBlock.name:                      return new TTSBlock({});
     case SleepBlock.name:                    return new SleepBlock({});
     case TriggerGate.name:                   return new TriggerGate({});
+    case PlayMovieBlock.name:                return new PlayMovieBlock({});
+    case PlayGameBlock.name:                 return new PlayGameBlock({});
+    case PlayWebGPUBlock.name:               return new PlayWebGPUBlock({});
     }
 }
 
