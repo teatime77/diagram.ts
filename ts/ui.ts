@@ -1,7 +1,5 @@
 import { assert, MyError, msg, Vec2 } from "@i18n";
-import { notchRadius } from "./block";
 import { Canvas } from "./canvas";
-import { ActionBlock, InfiniteLoop } from "./procedure";
 
 const TextSizeFill = 8;
 export const textColor = "black";
@@ -92,6 +90,12 @@ export abstract class UI {
         this.backgroundColor = data.backgroundColor;
     }
 
+    copyUI(ui : UI){
+        ui.position = this.position.copy();
+        ui.boxSize  = this.boxSize.copy();
+        ui.ctx      = this.ctx;
+    }
+
     children() : UI[] {
         return [];
     }    
@@ -170,14 +174,7 @@ export abstract class UI {
     }
 
     drawBox() : [number, number, number, number] {
-        const [xa, ya, xb, yb] = this.borderInnerBox();
-
-        if(this instanceof ActionBlock && !(this instanceof InfiniteLoop)){
-            return [xa, ya, xb, yb - notchRadius];
-        }
-        else{
-            return [xa, ya, xb, yb];
-        }
+        return this.borderInnerBox();
     }
 
     inMarginBox(pos : Vec2) : boolean {

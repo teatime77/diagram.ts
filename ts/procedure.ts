@@ -1,10 +1,11 @@
 import { msg, Speech, sleep, MyError, assert, setVoiceLanguageCode, Vec2 } from "@i18n";
-import { PortType, notchRadius } from "./block";
-import { Port, allActions, TextPort, NumberPort, runBlockChain, stopFlag, ttsIcon, sleepIcon } from "./index";
+import { runBlockChain, stopFlag } from "./index";
 import { tab, Attr } from "./ui";
-import { Block } from "./block";
+import { Block, makeFunctionBlockByTypeName } from "./block";
+import { NumberPort, Port, TextPort } from "./port";
+import { nest_h1, notchRadius, PortType, sleepIcon, ttsIcon } from "./diagram_util";
+import { allActions } from "./canvas";
 
-export const nest_h1 = 35;
 const nest_h2 = 30;
 const nest_h3 = 20;
 
@@ -19,6 +20,13 @@ export abstract class ActionBlock extends Block {
             this.topPort, 
             this.bottomPort 
         ];
+    }
+
+    copy() : Block {
+        const block = makeActionBlockByTypeName(this.constructor.name)!;
+        this.copyUI(block);
+
+        return block;
     }
 
     dependentPorts() : Port[] {
@@ -101,6 +109,17 @@ export abstract class ActionBlock extends Block {
                 const dst_action = dst_port.parent as ActionBlock;
                 dst_action.adjustActionPosition(dst_action_position);
             }
+        }
+    }
+
+    drawBox() : [number, number, number, number] {
+        const [xa, ya, xb, yb] = this.borderInnerBox();
+
+        if(this instanceof ActionBlock && !(this instanceof InfiniteLoop)){
+            return [xa, ya, xb, yb - notchRadius];
+        }
+        else{
+            return [xa, ya, xb, yb];
         }
     }
 
@@ -396,4 +415,27 @@ export class InfiniteLoop extends NestBlock {
             }
         }
     }
+}
+
+export function makeActionBlockByTypeName(typeName : string) : ActionBlock | undefined {
+    switch(typeName){
+
+    case IfBlock.name:                       return new IfBlock({});
+    case InfiniteLoop.name:                  return new InfiniteLoop({});
+    case TTSBlock.name:                      return new TTSBlock({});
+    case SleepBlock.name:                    return new SleepBlock({});
+    case TriggerGate.name:                   return new TriggerGate({});
+    }
+}
+
+export function makeBlockByTypeName(typeName : string) : Block {
+    let block = makeFunctionBlockByTypeName(typeName);
+    if(block == undefined){
+        block = makeActionBlockByTypeName(typeName);
+        if(block == undefined){
+            throw new MyError();
+        }
+    }
+
+    return block;
 }

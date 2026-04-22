@@ -2,30 +2,18 @@
 
 import { assert, msg, MyError, sum, Vec2 } from "@i18n";
 import { Term, Rational, ConstNum, RefVar, App, parseMath, SyntaxError } from "@parser";
-import { Editor, Canvas } from "./canvas";
-import { Port, NumberPort, TextPort, cameraIcon, cameraImg, distanceSensorIcon, motorIcon } from "./index";
-import { sendData } from "./diagram_util";
-import { nest_h1, IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate } from "./procedure";
+import { cameraIcon, cameraImg, distanceSensorIcon, motorIcon, notchRadius, PortType, theCanvas } from "./diagram_util";
+import { nest_h1, sendData } from "./diagram_util";
 import { tab, UI, Attr } from "./ui";
+import { NumberPort, Port, TextPort } from "./port";
+import { theEditor } from "./json-util";
 
-export const notchRadius = 10;        
-export const inputHeight = 21;
+// export const inputHeight = 21;
 
-export const blockLineColor = "brown";
-const nearPortDistance = 10;
+const blockLineColor = "brown";
 
 const rangeWidth  = 150;
 const numberWidth = 45;
-
-export enum PortType {
-    unknown,
-    bottom,
-    top,
-
-    inputPort,
-    outputPort,
-    condition,
-}
 
 export abstract class Block extends UI {
     ports : Port[] = [];
@@ -46,15 +34,7 @@ export abstract class Block extends UI {
         }
     }
 
-    copy() : Block {
-        const block = makeBlockByTypeName(this.constructor.name);
-
-        block.position = this.position.copy();
-        block.boxSize  = this.boxSize.copy();
-        block.ctx      = this.ctx;
-
-        return block;
-    }
+    abstract copy() : Block;
 
     makeObj() : any{
         return {
@@ -135,7 +115,7 @@ export abstract class Block extends UI {
         }
         port1.connect(port2);
 
-        Editor.one.layoutRoot();
+        theEditor.layoutRoot();
         msg(`connect block`);
     }
 
@@ -168,11 +148,11 @@ export abstract class Block extends UI {
     }
 
     drawOutline(points : ([number, number] | Port | null)[], color : string = blockLineColor){
-        if(this == Canvas.one.draggedUI){
+        if(this == theCanvas.draggedUI){
 
             this.ctx.globalAlpha = 0.5;
         }
-        else if(Canvas.one.prevPortOfDraggedUI != undefined && Canvas.one.prevPortOfDraggedUI.parent == this){
+        else if(theCanvas.prevPortOfDraggedUI != undefined && theCanvas.prevPortOfDraggedUI.parent == this){
 
             this.ctx.globalAlpha = 0.5;
             color = "red";
@@ -327,6 +307,12 @@ export abstract class Block extends UI {
 }
 
 export abstract class FunctionBlock extends Block {
+    copy() : Block {
+        const block = makeFunctionBlockByTypeName(this.constructor.name)!;
+        this.copyUI(block);
+
+        return block;
+    }
 }
 
 
@@ -415,7 +401,7 @@ export class InputRangeBlock extends InputBlock {
         this.input.addEventListener("input", async (ev : Event) => {
             this.updatePort();
             
-            Canvas.one.requestUpdateCanvas();
+            theCanvas.requestUpdateCanvas();
         });
 
         this.minInput.addEventListener('change', (ev : Event) => {
@@ -585,7 +571,7 @@ export class InputTextBlock extends InputBlock {
         this.input.addEventListener("input", async (ev : Event) => {
             this.updatePort();
             
-            Canvas.one.requestUpdateCanvas();
+            theCanvas.requestUpdateCanvas();
         });
     }
 
@@ -614,7 +600,7 @@ export class InputNumberBlock extends InputBlock {
         this.input.addEventListener("input", async (ev : Event) => {
             this.updatePort();
             
-            Canvas.one.requestUpdateCanvas();
+            theCanvas.requestUpdateCanvas();
         });
     }
 
@@ -640,7 +626,7 @@ export class InputNumberBlock extends InputBlock {
     }
 }
 
-export class CameraBlock extends Block {
+export class CameraBlock extends FunctionBlock {
     constructor(data : Attr){
         super(data);
         this.ports = [ new Port(this, PortType.outputPort) ];
@@ -688,7 +674,7 @@ export class CameraBlock extends Block {
     }
 }
 
-export class FaceDetectionBlock extends Block {
+export class FaceDetectionBlock extends FunctionBlock {
     face : number[] = [];
 
     constructor(data : Attr){
@@ -776,7 +762,7 @@ export class FaceDetectionBlock extends Block {
     }
 }
 
-export class JoyStickBlock extends Block {
+export class JoyStickBlock extends FunctionBlock {
     constructor(data : Attr){
         super(data);
         this.ports = [ ];
@@ -787,7 +773,7 @@ export class JoyStickBlock extends Block {
     }
 }
 
-export class UltrasonicDistanceSensorBlock extends Block {
+export class UltrasonicDistanceSensorBlock extends FunctionBlock {
     constructor(data : Attr){
         super(data);
         this.ports = [ 
@@ -957,25 +943,19 @@ export class ConditionGate extends FunctionBlock {
     }
 }
 
-export function makeBlockByTypeName(typeName : string) : Block {
+export function makeFunctionBlockByTypeName(typeName : string) : FunctionBlock | undefined {
     switch(typeName){
-    case InputTextBlock.name:                return new InputTextBlock({});
-    case InputNumberBlock.name:              return new InputNumberBlock({});
-    case IfBlock.name:                       return new IfBlock({});
-    case CompareBlock.name:                  return new CompareBlock({});
-    case InfiniteLoop.name:                  return new InfiniteLoop({});
     case InputRangeBlock.name:               return new InputRangeBlock({});
     case ServoMotorBlock.name:               return new ServoMotorBlock({});
+    case InputTextBlock.name:                return new InputTextBlock({});
+    case InputNumberBlock.name:              return new InputNumberBlock({});
     case CameraBlock.name:                   return new CameraBlock({});
-    case TTSBlock.name:                      return new TTSBlock({});
-    case SleepBlock.name:                    return new SleepBlock({});
     case FaceDetectionBlock.name:            return new FaceDetectionBlock({});
     case JoyStickBlock.name:                 return new JoyStickBlock({});
     case UltrasonicDistanceSensorBlock.name: return new UltrasonicDistanceSensorBlock({});
     case CalcBlock.name:                     return new CalcBlock({});
+    case CompareBlock.name:                  return new CompareBlock({});
     case ConditionGate.name:                 return new ConditionGate({});
-    case TriggerGate.name:                   return new TriggerGate({});
-    default:
-        throw new MyError();
+    
     }
 }

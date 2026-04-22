@@ -1,16 +1,42 @@
-import { msg, Vec2 } from "@i18n";
+import { assert, msg, Vec2 } from "@i18n";
 import { Button } from "./ui";
 import { Block, InputRangeBlock } from "./block";
-import { Port, dumpActions, getTopActions } from "./index";
 import { ActionBlock, NestBlock } from "./procedure";
-
-export let repaintCount = 0;
+import { Port } from "./port";
+import { incRepaintCount, PortType, setCanvas, theCanvas } from "./diagram_util";
+import { setEditor, theEditor } from "./json-util";
 
 let animationFrameId : number | null = null;
 
-export class Canvas {
-    static one : Canvas;
+export function allActions() : ActionBlock[] {
+    return theEditor.blocks.filter(x => x instanceof ActionBlock);
+}
 
+export function allDependentPorts() : Port[] {
+    const action_blocks = allActions();
+    return action_blocks.map(x => x.dependentPorts()).flat();
+}
+
+export function getTopActions() : ActionBlock[] {
+    const action_blocks = allActions();
+
+    const top_blocks : ActionBlock[] = [];
+    for(const block of action_blocks){
+        const top_port = block.ports.find(x => x.type == PortType.top)!;
+        assert(top_port != undefined);
+        if(top_port.sources.length == 0){
+            top_blocks.push(block);
+        }
+    }
+
+    return top_blocks;
+}
+
+function dumpActions(){
+    getTopActions().forEach(x => x.dump(0));
+}
+
+export class Canvas {
     canvas : HTMLCanvasElement;
     ctx : CanvasRenderingContext2D;
 
@@ -26,20 +52,20 @@ export class Canvas {
     moved : boolean = false;
 
     constructor(canvas_html : HTMLCanvasElement){
-        Canvas.one = this;
+        setCanvas(this);
         this.canvas = canvas_html;
         this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
         if (!this.ctx) {
             console.error("Canvas context not supported!");
         }
 
-        Editor.one.setContext2D(this.ctx);
+        theEditor.setContext2D(this.ctx);
 
         this.canvas.addEventListener("pointerdown",  this.pointerdown.bind(this));
         this.canvas.addEventListener("pointermove",  this.pointermove.bind(this));
         
         this.canvas.addEventListener("pointerup"  , async (ev:PointerEvent)=>{
-            await Canvas.one.pointerup(ev);
+            await theCanvas.pointerup(ev);
         });
     }
 
@@ -65,7 +91,7 @@ export class Canvas {
         this.prevPortOfDraggedUI = undefined;
 
         const pos = this.getPositionInCanvas(ev);
-        const target = Editor.one.getPortBlockFromPosition(pos);
+        const target = theEditor.getPortBlockFromPosition(pos);
         if(target != undefined){
             msg(`down:${target.constructor.name}`);
             this.downPos   = pos;
@@ -79,7 +105,7 @@ export class Canvas {
                 if(target.inToolbox){
 
                     const block = target.copy();
-                    Editor.one.addBlock(block);
+                    theEditor.addBlock(block);
 
                     this.draggedUI = block
                 }
@@ -125,7 +151,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = Editor.one.getPortBlockFromPosition(pos);
+        const target = theEditor.getPortBlockFromPosition(pos);
         const s = (target == undefined ? "" : `target:[${target.str()}]`);
 
         this.movePos = pos;
@@ -161,7 +187,7 @@ export class Canvas {
         }
 
         const pos = this.getPositionInCanvas(ev);
-        const target = Editor.one.getPortBlockFromPosition(pos);
+        const target = theEditor.getPortBlockFromPosition(pos);
 
         if(this.moved){
             msg("dragged");
@@ -186,7 +212,7 @@ export class Canvas {
                             this.prevPortOfDraggedUI.connect(top_port);
                         }
 
-                        Editor.one.layoutRoot();
+                        theEditor.layoutRoot();
                     }
                 }
             }
@@ -230,19 +256,19 @@ export class Canvas {
             this.ctx.fillText('Hello Canvas!', this.canvas.width / 2 - 100, this.canvas.height / 2);
         }
 
-        Editor.one.layoutRoot();
+        theEditor.layoutRoot();
 
         this.requestUpdateCanvas();
     }
 
     repaint(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
-        Editor.one.draw();
+        theEditor.draw();
         if(this.draggedUI instanceof Port){
             this.draggedUI.drawDraggedPort(this.movePos);
         }
 
-        repaintCount++;
+        incRepaintCount();
     }
 
     drawLine(start : Vec2, end : Vec2, color : string, lineWidth : number = 2){
@@ -259,12 +285,11 @@ export class Canvas {
 
 
 export class Editor {
-    static one : Editor;
     tools  : Block[];
     blocks : Block[] = [];
 
     constructor(tools : Block[]){
-        Editor.one = this;
+        setEditor(this);
 
         this.tools = tools.slice();
 
@@ -308,7 +333,7 @@ export class Editor {
     }
 
     layoutRoot(){
-        Editor.one.setNestBoxSize();
+        theEditor.setNestBoxSize();
         const top_actions = getTopActions();
         top_actions.forEach(x => x.adjustActionPosition(x.position));
     }

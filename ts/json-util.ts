@@ -1,7 +1,10 @@
-import { msg, assert, sleep } from "@i18n";
-import { Block, makeBlockByTypeName } from "./block";
-import { repaintCount, Canvas, Editor } from "./canvas";
-import { Port } from "./index";
+import type { Editor } from "./canvas";
+
+export let theEditor : Editor;
+
+export function setEditor(editor : Editor){
+    theEditor = editor;
+}
 
 export function downloadJson(data : any){
     // Convert the object to a JSON string
@@ -26,85 +29,10 @@ export function downloadJson(data : any){
     URL.revokeObjectURL(link.href);
 }
 
-function preventDefaults(ev:DragEvent) {
-    ev.preventDefault(); 
-    ev.stopPropagation();
-}
-
-export function setDragDrop(canvas : HTMLCanvasElement){
-    canvas.addEventListener("dragenter", (ev : DragEvent)=>{
-        preventDefaults(ev);
-        msg("drag enter");
-    });
-
-    canvas.addEventListener("dragover", (ev : DragEvent)=>{
-        preventDefaults(ev);
-        canvas.classList.add('dragover')
-
-        msg("drag over");
-    });
-
-    canvas.addEventListener("dragleave", (ev : DragEvent)=>{
-        preventDefaults(ev);
-        canvas.classList.remove('dragover');
-        msg("drag leave");
-    });
-
-    canvas.addEventListener("drop", async (ev : DragEvent)=>{
-        preventDefaults(ev);
-        canvas.classList.remove('dragover');
-
-        msg("drop");
-        const dt = ev.dataTransfer;
-        if(dt == null){
-            return;
-        }
-
-        const files = Array.from(dt.files);
-
-        msg(`${files}`);
-
-        if(files.length == 1){
-            const file = files[0];
-
-            msg(`File name: ${file.name}, File size: ${file.size}, File type: ${file.type}`);
-
-            const reader = new FileReader();
-
-            reader.onload = async() => {
-                const json = reader.result as string;
-                const obj  = JSON.parse(json);
-
-                assert(Array.isArray(obj));
-
-                // msg(`dropped:[${JSON.stringify(data, null, 2)}]`);
-                loadJson(obj as any[]);
-
-                const repaint_count = repaintCount;
-                Canvas.one.requestUpdateCanvas();
-
-                // port positions are set on paing.
-                // edges can be drawn after port position settings.
-                while(repaint_count == repaintCount){
-                    await sleep(100);
-                }
-
-                // draw input elements in blocks.
-                Editor.one.blocks.forEach(x => x.setBlockPortPosition(x.position));
-                Canvas.one.requestUpdateCanvas();
-            };
-
-            reader.readAsText(file);        
-
-
-        }
-    });    
-}
-
 export function saveJson(){
     let port_idx = 0;
 
-    const blocks = Editor.one.blocks;
+    const blocks = theEditor.blocks;
     for(const [idx, block] of blocks.entries()){
         block.idx = idx;
 
@@ -115,54 +43,4 @@ export function saveJson(){
 
     const json = blocks.map(x => x.makeObj());
     downloadJson(json);
-}
-
-function loadJson(objs:any[]){
-    Editor.one.clearBlock();
-    
-    const block_map = new Map<number, Block>();
-    const port_map = new Map<number, Port>();
-
-    for(const obj of objs){
-        msg(`block:[${obj.typeName}]`);
-        const block = makeBlockByTypeName(obj.typeName);
-        block.loadObj(obj);
-
-        block.idx        = obj.idx;
-        block.position.x = obj.x;
-        block.position.y = obj.y;
-        block.setBoxSize();
-
-        block_map.set(block.idx, block);
-
-        for(const [port_idx, port_obj] of obj.ports.entries()){
-            const port = block.ports[port_idx];
-            port.idx = port_obj.idx;
-
-            port_map.set(port.idx, port);
-        }
-
-        Editor.one.addBlock(block);
-    }
-
-    Editor.one.blocks.forEach(x => x.setPortPositions());
-
-    for(const obj of objs){
-        const block = block_map.get(obj.idx)!;
-        assert(block != undefined);
-
-        for(const [port_idx, port_obj] of obj.ports.entries()){
-            const port = block.ports[port_idx];
-
-            for(const dst_port_idx of port_obj.destinations){
-                const dst_port = port_map.get(dst_port_idx)!;
-                assert(dst_port != undefined);
-
-                port.connect(dst_port);
-            }
-        }
-    }
-
-    Editor.one.setContext2D(Canvas.one.ctx);
-    Editor.one.layoutRoot();
 }

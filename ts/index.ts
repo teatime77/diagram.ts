@@ -1,25 +1,17 @@
-import { msg, MyError, assert, remove, $, parseURL, Vec2, append } from "@i18n";
+import { msg, assert, $, sleep } from "@i18n";
 import { initWebGPU } from "@webgpu";
-import { initGame } from "@game"
-import { PortType, notchRadius, InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoMotorBlock, CameraBlock, FaceDetectionBlock, CalcBlock, UltrasonicDistanceSensorBlock, ConditionGate, InputBlock } from "./block";
-import { Canvas, Editor } from "./canvas";
-import { sendData } from "./diagram_util";
-import { setDragDrop, saveJson } from "./json-util";
-import { IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate, ActionBlock } from "./procedure";
-import { tab } from "./ui";
+import { initGame } from "@game";
+import { initMovie } from "@movie";
+import { InputTextBlock, InputNumberBlock, CompareBlock, InputRangeBlock, ServoMotorBlock, CameraBlock, FaceDetectionBlock, CalcBlock, UltrasonicDistanceSensorBlock, ConditionGate, InputBlock } from "./block";
+import { Canvas, Editor, getTopActions } from "./canvas";
+import { fetchImage, initUI, initURL, pathName, repaintCount, sendData, startButton, theCanvas, urlOrigin } from "./diagram_util";
+import { saveJson, theEditor } from "./json-util";
+import { IfBlock, InfiniteLoop, TTSBlock, SleepBlock, TriggerGate, ActionBlock, makeBlockByTypeName } from "./procedure";
 import { Block } from "./block"
+import { Port } from "./port";
 
-export let urlOrigin : string;
-let startButton : HTMLButtonElement;
 export let stopFlag : boolean = false;
 let isRunning : boolean = false;
-
-export let cameraIcon : HTMLImageElement;
-export let motorIcon  : HTMLImageElement;
-export let cameraImg : HTMLImageElement;
-export let distanceSensorIcon : HTMLImageElement;
-export let ttsIcon : HTMLImageElement;
-export let sleepIcon : HTMLImageElement;
 
 class Variable {
     name! : string;
@@ -40,229 +32,21 @@ export class DataType {
 
 }
 
-export class Port {
-    static radius = 10;        
-    static Count = 0;
-
-    idx : number = 0;
-    name : string;
-    parent : Block;
-    destinations : Port[]  = [];
-    sources : Port[]  = [];
-    type : PortType;
-    offset : Vec2 = Vec2.zero();
-    private position : Vec2 = Vec2.zero();
-
-    prevValue : any | undefined;
-    value : any | undefined;
-
-    constructor(parent : Block, type : PortType, name : string = ""){
-        this.idx    = Port.Count++;
-        this.parent = parent;
-        this.type   = type;
-        this.name   = name;
-    }
-
-    str() : string {
-        return `port idx:${this.idx} type:${PortType[this.type]} pos:${this.position.toString()}`;
-    }
-
-    dumpPort(nest : number){
-        msg(`${tab(nest)}${this.str()}`);
-    }
-
-    makeObj() : any{
-        return {
-            idx : this.idx,
-            destinations : this.destinations.map(dst => dst.idx)
-        };
-    }
-
-    setPortValue(value : any | undefined){
-        this.value = value;
-
-        for(const dst of this.destinations){
-            dst.setPortValue(value);
-
-            dst.parent.valueChanged()
-            .then(()=>{
-            })
-            .catch(error => {
-                console.error("Failed to value change:", error);
-            });
-        }
-    }
-
-    getPosition() : Vec2 {
-        return this.position;
-    }
-
-    setPortPositionXY(x : number, y : number){
-        this.position.x = x;
-        this.position.y = y;
-
-        this.offset.x = x - this.parent.position.x;
-        this.offset.y = y - this.parent.position.y;
-    }
-
-    isNear(pos : Vec2){
-        return this.position.distance(pos) < Port.radius;
-    }
-
-    isNearPort(port : Port){
-        return this.position.distance(port.position) < Port.radius;
-    }
-
-    diffPosition(port : Port) : Vec2 {
-        return this.position.sub(port.position);
-    }
-
-    prevPort() : Port | undefined {
-        if(this.sources.length == 1){
-            return this.sources[0];
-        }
-
-        return undefined;
-    }
-
-    nextPort() : Port | undefined {
-        if(this.destinations.length == 1){
-            return this.destinations[0];
-        }
-
-        return undefined;
-    }
-    
-    drawNotch(ctx : CanvasRenderingContext2D){
-        switch(this.type){
-        case PortType.top:
-            ctx.arc(this.position.x, this.position.y, notchRadius, 0, Math.PI, false);
-            break;
-
-            case PortType.bottom:
-            ctx.arc(this.position.x, this.position.y, notchRadius, Math.PI, 0, true);
-            break;
-
-        default:
-            throw new MyError();
-        }
-    }
-
-    drawIOPort(ctx : CanvasRenderingContext2D) : void {   
-        ctx.beginPath();
-
-        ctx.arc(this.position.x, this.position.y, Port.radius, 0, 2 * Math.PI);
-
-        ctx.fill();
-        ctx.stroke();
-
-        for(const dst of this.destinations){
-            Canvas.one.drawLine(this.position, dst.position, "brown", 4);
-        }
-
-        if(this.name != ""){
-            // ctx.strokeText(this.name, this.position.x, this.position.y);
-            ctx.save();
-            ctx.font = '24px Arial';
-            ctx.fillStyle = "black";
-            const x = this.position.x - 7;
-            const y = this.position.y + 7;
-            ctx.fillText(this.name, x, y);
-            ctx.restore();
-        }
-
-        if(this.value != undefined){
-
-            ctx.save();
-            ctx.font = '24px Arial';
-            ctx.fillStyle = "black";
-            const x = this.position.x - 7 + Port.radius;
-            const y = this.position.y + 7;
-            ctx.fillText(`${this.value}`, x, y);
-            ctx.restore();
-        }
-    }
-
-    drawDraggedPort(move_pos : Vec2){       
-        Canvas.one.drawLine(this.position, move_pos, "blue") ;
-    }
-
-    fitPortType(dst : Port) : boolean {
-        const pairs = [
-            [ PortType.bottom, PortType.top],
-            [ PortType.top , PortType.bottom],
-
-            [ PortType.inputPort, PortType.outputPort],
-            [ PortType.outputPort, PortType.inputPort]
-        ];
-
-        return pairs.some(pair => pair[0] == this.type && pair[1] == dst.type);
-    }
-
-    canConnect(dst : Port) : boolean {
-        return this.fitPortType(dst) && this.isNearPort(dst);
-    }
-
-    connect(port : Port) : void {   
-        assert(this.fitPortType(port));
-
-        let src : Port;
-        let dst : Port;
-
-        if(this.type == PortType.bottom || this.type == PortType.outputPort){
-            [src, dst] = [this, port];
-        }
-        else{
-            [src, dst] = [port, this];
-        }
-
-        append(src.destinations, dst);
-        append(dst.sources, src);
-
-        msg(`connect port:${this.idx}=>${port.idx}`);
-    }
-
-    disconnect(port : Port) : void {   
-        remove(this.destinations, port, true);
-        remove(port.sources, this, true);
-    }
-}
-
-export class NumberPort extends Port {
-    numberValue() : number {
-        if(typeof this.value == "number"){
-            return this.value;
-        }
-
-        throw new MyError();
-    }
-}
-
-export class TextPort extends Port {
-    stringValue() : string {
-        if(typeof this.value == "string"){
-            return this.value;
-        }
-
-        throw new MyError();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     msg("loaded in diagram-ts");
-    let pathname  : string;
-    let params    : Map<string, string>;
-    [ urlOrigin, pathname, params,] = parseURL();
-    msg(`origin:[${urlOrigin}] path:[${pathname}]`);
+    initURL();
 
-    if(pathname.startsWith("/webgpu")){
+    if(pathName.startsWith("/webgpu")){
         await initWebGPU();
     }
-    else if(pathname.startsWith("/game")){
+    else if(pathName.startsWith("/game")){
         await initGame();        
     }
-    else if(pathname.startsWith("/diagram")){
+    else if(pathName.startsWith("/diagram")){
         await initDiagram();        
+    }
+    else if(pathName.startsWith("/movie")){
+        await initMovie();        
     }
     else{
         msg("no project")
@@ -328,24 +112,8 @@ export class Main {
 
 }
 
-function fetchImage(image_url : string){
-    const image = new Image();
-    image.width  = 320;
-    image.height = 240;
-
-    // 2. Set the crossOrigin attribute for security and to prevent a tainted canvas
-    image.crossOrigin = 'Anonymous'; 
-    
-    image.src = image_url; 
-
-    // 4. Wait for the image to load
-    image.onload = () => {
-        cameraImg = image;
-    };
-}
-
 function updateCameraImage(image_file_name : string){
-    const blocks = Editor.one.blocks;
+    const blocks = theEditor.blocks;
     const cameras = blocks.filter(x => x instanceof CameraBlock);
     for(const camera of cameras){
         const image_url = `static/lib/diagram/img/${image_file_name}`;
@@ -354,7 +122,7 @@ function updateCameraImage(image_file_name : string){
 }
 
 function updateFaceDetection(face : number[]){
-    const face_detection = Editor.one.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
+    const face_detection = theEditor.blocks.find(x => x instanceof FaceDetectionBlock) as FaceDetectionBlock;
     if(face_detection != undefined){
         face_detection.setFace(face);
 
@@ -363,7 +131,7 @@ function updateFaceDetection(face : number[]){
 }
 
 function updateDistanceSensor(distance : number){
-    const distance_sensor = Editor.one.blocks.find(x => x instanceof UltrasonicDistanceSensorBlock) as UltrasonicDistanceSensorBlock;
+    const distance_sensor = theEditor.blocks.find(x => x instanceof UltrasonicDistanceSensorBlock) as UltrasonicDistanceSensorBlock;
     if(distance_sensor != undefined){
         distance_sensor.setDistance(distance);
 
@@ -414,40 +182,11 @@ async function periodicTask() {
             updateDistanceSensor(distance);
         }
 
-        Canvas.one.requestUpdateCanvas();
+        theCanvas.requestUpdateCanvas();
     }
 
     setTimeout(periodicTask, 100);
 }
-
-export function allActions() : ActionBlock[] {
-    return Editor.one.blocks.filter(x => x instanceof ActionBlock);
-}
-
-export function allDependentPorts() : Port[] {
-    const action_blocks = allActions();
-    return action_blocks.map(x => x.dependentPorts()).flat();
-}
-
-export function getTopActions() : ActionBlock[] {
-    const action_blocks = allActions();
-
-    const top_blocks : ActionBlock[] = [];
-    for(const block of action_blocks){
-        const top_port = block.ports.find(x => x.type == PortType.top)!;
-        assert(top_port != undefined);
-        if(top_port.sources.length == 0){
-            top_blocks.push(block);
-        }
-    }
-
-    return top_blocks;
-}
-
-export function dumpActions(){
-    getTopActions().forEach(x => x.dump(0));
-}
-
 
 export async function runBlockChain(top_block : ActionBlock){
     for(let block : ActionBlock | undefined = top_block; block != undefined; block = block.nextBlock()){
@@ -465,7 +204,7 @@ async function startProcedures() {
     isRunning = true;
     stopFlag = false;
 
-    const input_blocks = Editor.one.blocks.filter(x => x instanceof InputBlock);
+    const input_blocks = theEditor.blocks.filter(x => x instanceof InputBlock);
     input_blocks.forEach(x => x.updatePort());
 
 
@@ -485,17 +224,12 @@ async function startProcedures() {
 }
 
 export async function initDiagram(){
-    cameraIcon = document.getElementById("camera-icon") as HTMLImageElement;
-    motorIcon  = document.getElementById("motor-icon") as HTMLImageElement;
-    distanceSensorIcon  = document.getElementById("distance-sensor-icon") as HTMLImageElement;
-    ttsIcon    = document.getElementById("tts-icon") as HTMLImageElement;
-    sleepIcon    = document.getElementById("sleep-icon") as HTMLImageElement;
+    initUI();
     
     $("clear-btn").addEventListener("click", (ev : MouseEvent)=>{
-        Editor.one.clearBlock();
+        theEditor.clearBlock();
     });
 
-    startButton = $("start-btn") as HTMLButtonElement;
     startButton.addEventListener("click", async(ev : MouseEvent)=>{
         if(isRunning){
 
@@ -514,9 +248,137 @@ export async function initDiagram(){
 
     new Main();
 
-    await clearQueue();
+    const diy_sbc = false;
+    if(diy_sbc){
+        await clearQueue();
 
-    if( urlOrigin != "http://127.0.0.1:5500"){
-        await periodicTask();
+        if( urlOrigin != "http://127.0.0.1:5500"){
+            await periodicTask();
+        }
     }
+}
+
+function loadJson(objs:any[]){
+    theEditor.clearBlock();
+    
+    const block_map = new Map<number, Block>();
+    const port_map = new Map<number, Port>();
+
+    for(const obj of objs){
+        msg(`block:[${obj.typeName}]`);
+        const block = makeBlockByTypeName(obj.typeName);
+        block.loadObj(obj);
+
+        block.idx        = obj.idx;
+        block.position.x = obj.x;
+        block.position.y = obj.y;
+        block.setBoxSize();
+
+        block_map.set(block.idx, block);
+
+        for(const [port_idx, port_obj] of obj.ports.entries()){
+            const port = block.ports[port_idx];
+            port.idx = port_obj.idx;
+
+            port_map.set(port.idx, port);
+        }
+
+        theEditor.addBlock(block);
+    }
+
+    theEditor.blocks.forEach(x => x.setPortPositions());
+
+    for(const obj of objs){
+        const block = block_map.get(obj.idx)!;
+        assert(block != undefined);
+
+        for(const [port_idx, port_obj] of obj.ports.entries()){
+            const port = block.ports[port_idx];
+
+            for(const dst_port_idx of port_obj.destinations){
+                const dst_port = port_map.get(dst_port_idx)!;
+                assert(dst_port != undefined);
+
+                port.connect(dst_port);
+            }
+        }
+    }
+
+    theEditor.setContext2D(theCanvas.ctx);
+    theEditor.layoutRoot();
+}
+
+function preventDefaults(ev:DragEvent) {
+    ev.preventDefault(); 
+    ev.stopPropagation();
+}
+
+function setDragDrop(canvas : HTMLCanvasElement){
+    canvas.addEventListener("dragenter", (ev : DragEvent)=>{
+        preventDefaults(ev);
+        msg("drag enter");
+    });
+
+    canvas.addEventListener("dragover", (ev : DragEvent)=>{
+        preventDefaults(ev);
+        canvas.classList.add('dragover')
+
+        msg("drag over");
+    });
+
+    canvas.addEventListener("dragleave", (ev : DragEvent)=>{
+        preventDefaults(ev);
+        canvas.classList.remove('dragover');
+        msg("drag leave");
+    });
+
+    canvas.addEventListener("drop", async (ev : DragEvent)=>{
+        preventDefaults(ev);
+        canvas.classList.remove('dragover');
+
+        msg("drop");
+        const dt = ev.dataTransfer;
+        if(dt == null){
+            return;
+        }
+
+        const files = Array.from(dt.files);
+
+        msg(`${files}`);
+
+        if(files.length == 1){
+            const file = files[0];
+
+            msg(`File name: ${file.name}, File size: ${file.size}, File type: ${file.type}`);
+
+            const reader = new FileReader();
+
+            reader.onload = async() => {
+                const json = reader.result as string;
+                const obj  = JSON.parse(json);
+
+                assert(Array.isArray(obj));
+
+                // msg(`dropped:[${JSON.stringify(data, null, 2)}]`);
+                loadJson(obj as any[]);
+
+                const repaint_count = repaintCount;
+                theCanvas.requestUpdateCanvas();
+
+                // port positions are set on paing.
+                // edges can be drawn after port position settings.
+                while(repaint_count == repaintCount){
+                    await sleep(100);
+                }
+
+                // draw input elements in blocks.
+                theEditor.blocks.forEach(x => x.setBlockPortPosition(x.position));
+                theCanvas.requestUpdateCanvas();
+            };
+
+            reader.readAsText(file);        
+
+
+        }
+    });    
 }
