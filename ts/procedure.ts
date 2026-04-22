@@ -5,7 +5,7 @@ import { Block, makeFunctionBlockByTypeName } from "./block";
 import { NumberPort, Port, TextPort } from "./port";
 import { nest_h1, notchRadius, PortType, sleepIcon, ttsIcon } from "./diagram_util";
 import { allActions } from "./canvas";
-import { switchActiveCanvas } from "./diagram_util";
+import { switchActiveModule } from "./diagram_util";
 import { playAllGraph } from "@movie";
 import { playGameWorld } from "@game";
 import { playWebGPUPackage } from "@webgpu";
@@ -429,7 +429,9 @@ export class PlayMovieBlock extends ActionBlock {
         this.boxSize = new Vec2(200, 60);
     }
     async run(){
+        switchActiveModule("layer-movie");
         await playAllGraph();
+        switchActiveModule("layer-diagram");
     }
 }
 
@@ -444,9 +446,9 @@ export class PlayGameBlock extends ActionBlock {
     }
     async run(){
         const target = this.inputPort.stringValue().trim();
-        switchActiveCanvas("world-game");
+        switchActiveModule("layer-game");
         await playGameWorld(target, () => stopFlag);
-        switchActiveCanvas("world-diagram");
+        switchActiveModule("layer-diagram");
     }
 }
 
@@ -461,9 +463,9 @@ export class PlayWebGPUBlock extends ActionBlock {
     }
     async run(){
         const pkgName = this.inputPort.stringValue().trim();
-        switchActiveCanvas("world-webgpu");
+        switchActiveModule("layer-webgpu");
         await playWebGPUPackage(pkgName);
-        switchActiveCanvas("world-diagram");
+        switchActiveModule("layer-diagram");
     }
 }
 

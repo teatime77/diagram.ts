@@ -100,17 +100,17 @@ export async function sendData(dataToSend : any) : Promise<any> {
     
 }
 
-export function switchActiveCanvas(activeId: string) {
-    const ids = ["world-diagram", "world-game", "world-webgpu", "world-movie"];
+export function switchActiveModule(moduleId: string) {
+    const ids = ["layer-diagram", "layer-game", "layer-webgpu", "layer-movie"];
     for (const id of ids) {
-        const canvas = document.getElementById(id);
-        if (canvas) {
-            if (id === activeId) {
-                canvas.style.display = "block";
-                canvas.style.zIndex = "10";
+        const layer = document.getElementById(id);
+        if (layer) {
+            if (id === moduleId) {
+                layer.style.display = "block";
+                layer.style.zIndex = "10";
             } else {
-                canvas.style.display = "none";
-                canvas.style.zIndex = "0";
+                layer.style.display = "none";
+                layer.style.zIndex = "0";
             }
         }
     }

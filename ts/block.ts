@@ -326,8 +326,10 @@ export abstract class InputBlock extends FunctionBlock {
 
         this.input = document.createElement("input");
         this.input.style.position = "absolute";
+        this.input.style.zIndex = "100";
 
-        document.body.appendChild(this.input);
+        const parent = document.getElementById("layer-diagram") || document.body;
+        parent.appendChild(this.input);
     }
 
     makeObj() : any {
@@ -345,7 +347,7 @@ export abstract class InputBlock extends FunctionBlock {
 
     clearBlock(): void {
         super.clearBlock();
-        document.body.removeChild(this.input);
+        this.input.parentElement?.removeChild(this.input);
     }
 
     getInputPosition() : [number, number]{

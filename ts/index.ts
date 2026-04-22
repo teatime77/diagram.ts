@@ -43,7 +43,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initGame();        
     }
     else if(pathName.startsWith("/diagram")){
-        await initDiagram();        
+        await initDiagram();
+        // background initialization for sub-modules
+        await initGame();
+        await initWebGPU();
+        await initMovie();
     }
     else if(pathName.startsWith("/movie")){
         await initMovie();        
