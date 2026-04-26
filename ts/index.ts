@@ -392,3 +392,19 @@ function setDragDrop(canvas : HTMLCanvasElement){
         }
     });    
 }
+
+// uroa側のテスト用コード（起動時に読み込まれる場所に追加）
+declare global {
+    interface Window {
+        injectTestData: (data: any) => void;
+    }
+}
+
+window.injectTestData = (data: any) => {
+    console.log("AI Agentからのデータを受信しました:", data);
+    // TODO: ここで受け取ったJSONデータを元に、2D描画(plane)や
+    // シミュレーション(webgpu)のコンポーネントを更新・再描画する処理を呼び出す
+    
+    // テストとして画面の背景色を変えるなど、視覚的にわかる変化をつけるのも有効です
+    document.body.style.backgroundColor = data.bgColor || "white";
+};
