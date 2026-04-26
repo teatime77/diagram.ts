@@ -1,4 +1,5 @@
-import { assert, msg, Vec2 } from "@i18n";
+import { assert, msg, MyError, Vec2 } from "@i18n";
+import { AbstractCanvas } from "@plane";
 import { Button } from "./ui";
 import { Block, InputRangeBlock } from "./block";
 import { ActionBlock, NestBlock } from "./procedure";
@@ -36,40 +37,22 @@ function dumpActions(){
     getTopActions().forEach(x => x.dump(0));
 }
 
-export class Canvas {
-    canvas : HTMLCanvasElement;
-    ctx : CanvasRenderingContext2D;
-
+export class Canvas extends AbstractCanvas {
     draggedUI? : Block | Port | Button;
     prevPortOfDraggedUI : Port | undefined;
 
-    pointerId : number = NaN;
-
-    downPos : Vec2 = Vec2.zero();
-    movePos : Vec2 = Vec2.zero();
-    uiOrgPos : Vec2 = Vec2.zero();
-
-    moved : boolean = false;
-
     constructor(canvas_html : HTMLCanvasElement){
+        super(canvas_html);
         setCanvas(this);
-        this.canvas = canvas_html;
-        this.ctx = this.canvas.getContext('2d')!; // Or 'webgl', 'webgl2'
-        if (!this.ctx) {
-            console.error("Canvas context not supported!");
-        }
 
         theEditor.setContext2D(this.ctx);
-
-        this.canvas.addEventListener("pointerdown",  this.pointerdown.bind(this));
-        this.canvas.addEventListener("pointermove",  this.pointermove.bind(this));
-        
-        this.canvas.addEventListener("pointerup"  , async (ev:PointerEvent)=>{
-            await theCanvas.pointerup(ev);
-        });
     }
 
-    getPositionInCanvas(event : PointerEvent) : Vec2 {
+    clearCanvas() : void {
+        throw new MyError("not implemented");
+    }
+
+    getPositionInCanvas(event : MouseEvent) : Vec2 {
         // Get the bounding rectangle of the canvas
         const rect = this.canvas.getBoundingClientRect();
 
@@ -86,7 +69,7 @@ export class Canvas {
         // console.log(`Canvas X: ${canvasX}, Canvas Y: ${canvasY}`);
     }
 
-    pointerdown(ev:PointerEvent){
+    pointerdown(ev:PointerEvent) : void {
         this.moved = false;
         this.prevPortOfDraggedUI = undefined;
 
@@ -143,7 +126,7 @@ export class Canvas {
         }
     }
 
-    pointermove(ev:PointerEvent){
+    pointermove(ev:PointerEvent) : void {
         this.moved = true;
 
         if(this.draggedUI == undefined){
@@ -181,7 +164,7 @@ export class Canvas {
         }        
     }
 
-    async pointerup(ev:PointerEvent){
+    async pointerup(ev:PointerEvent) : Promise<void> {
         if(this.draggedUI == undefined){
             return;
         }
@@ -239,7 +222,7 @@ export class Canvas {
         dumpActions();
     }
 
-    resizeCanvas() {
+    resizeCanvas() : void {
         // Set the canvas's internal drawing dimensions to match its display size
         // window.innerWidth/Height give the viewport dimensions.
         this.canvas.width  = window.innerWidth;
@@ -261,7 +244,7 @@ export class Canvas {
         this.requestUpdateCanvas();
     }
 
-    repaint(){
+    repaint() : void {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);        
         theEditor.draw();
         if(this.draggedUI instanceof Port){
